@@ -87,7 +87,7 @@ export default function Stage3D({ locals }: Stage3DProps) {
         frameloop="demand"
         camera={{ position: [4.5, 4, 7.5], fov: 42 }}
         dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
         style={{ background: 'transparent' }}
       >
         <ambientLight intensity={0.7} />

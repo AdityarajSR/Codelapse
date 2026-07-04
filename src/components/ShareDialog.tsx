@@ -1,7 +1,10 @@
 import QRCode from 'qrcode';
 import { useEffect, useMemo, useState } from 'react';
+import { downloadBlob, exportStageGif } from '../lib/gifExport';
 import { buildShareLink } from '../lib/share';
 import type { Trace } from '../types/trace';
+
+type GifState = 'idle' | 'working' | 'done' | 'unavailable';
 
 interface ShareDialogProps {
   open: boolean;
@@ -18,9 +21,13 @@ export function ShareDialog({ open, onClose, source, trace, step }: ShareDialogP
   );
   const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [gif, setGif] = useState<GifState>('idle');
+  const [gifPct, setGifPct] = useState(0);
 
   useEffect(() => {
     setCopied(false);
+    setGif('idle');
+    setGifPct(0);
     if (open && link) {
       QRCode.toDataURL(link.url, {
         margin: 1,
@@ -47,6 +54,22 @@ export function ShareDialog({ open, onClose, source, trace, step }: ShareDialogP
       setCopied(true);
     } catch {
       /* clipboard blocked — the field is selectable as a fallback */
+    }
+  };
+
+  const exportGif = async () => {
+    setGif('working');
+    setGifPct(0);
+    try {
+      const blob = await exportStageGif(setGifPct);
+      if (!blob) {
+        setGif('unavailable');
+        return;
+      }
+      downloadBlob(blob, 'codelapse.gif');
+      setGif('done');
+    } catch {
+      setGif('unavailable');
     }
   };
 
@@ -85,6 +108,17 @@ export function ShareDialog({ open, onClose, source, trace, step }: ShareDialogP
             directly if the link doesn’t open.
           </p>
         )}
+
+        <div className="dialog__export">
+          <button className="btn btn--ghost" onClick={exportGif} disabled={gif === 'working'}>
+            <span className="i i-download" aria-hidden="true" />
+            {gif === 'working' ? `Rendering GIF… ${Math.round(gifPct * 100)}%` : 'Download GIF'}
+          </button>
+          {gif === 'unavailable' && (
+            <span className="dialog__hint">Switch the stage to 3D to export a GIF.</span>
+          )}
+          {gif === 'done' && <span className="dialog__hint">Saved codelapse.gif ✓</span>}
+        </div>
 
         {qr && (
           <div className="dialog__qr">
