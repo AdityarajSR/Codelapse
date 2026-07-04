@@ -4,6 +4,7 @@ import type { Example } from '../examples';
 interface HeaderProps {
   phase: RunPhase;
   onRun: () => void;
+  onShare: () => void;
   examples: Example[];
   currentExampleId: string;
   onPickExample: (id: string) => void;
@@ -17,7 +18,14 @@ const runLabel: Record<RunPhase, string> = {
   error: 'Run',
 };
 
-export function Header({ phase, onRun, examples, currentExampleId, onPickExample }: HeaderProps) {
+export function Header({
+  phase,
+  onRun,
+  onShare,
+  examples,
+  currentExampleId,
+  onPickExample,
+}: HeaderProps) {
   const busy = phase === 'booting' || phase === 'running';
 
   return (
@@ -52,6 +60,11 @@ export function Header({ phase, onRun, examples, currentExampleId, onPickExample
         <span className="badge__dot" aria-hidden="true" />
         runs in your browser
       </span>
+
+      <button className="btn btn--ghost" onClick={onShare}>
+        <span className="i i-share" aria-hidden="true" />
+        Share
+      </button>
 
       <button className="btn btn--run" onClick={onRun} disabled={busy} aria-busy={busy}>
         {busy ? (

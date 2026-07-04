@@ -634,6 +634,103 @@ body {
   font-size: 15px;
 }
 
+/* share */
+.btn--ghost {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn--ghost:hover {
+  border-color: var(--border-strong);
+}
+.i-share {
+  width: 13px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+}
+.i-share::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 1.5px;
+  height: 7px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 4, 10, 0.62);
+  backdrop-filter: blur(6px);
+}
+.dialog {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.dialog__head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.dialog__mode {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.field {
+  display: flex;
+  gap: 8px;
+}
+.field input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.dialog__warn {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--warn);
+}
+.dialog__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.dialog__qr img {
+  border-radius: 10px;
+}
+.dialog__qr span {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
 /* --------------------------------------------------------------- banners -- */
 
 .banner {
