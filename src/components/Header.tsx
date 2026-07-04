@@ -61,6 +61,10 @@ export function Header({
         runs in your browser
       </span>
 
+      <a className="header__legal" href="/legal.html" target="_blank" rel="noopener noreferrer">
+        Legal
+      </a>
+
       <button className="btn btn--ghost" onClick={onShare}>
         <span className="i i-share" aria-hidden="true" />
         Share

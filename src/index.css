@@ -643,6 +643,14 @@ body {
 .btn--ghost:hover {
   border-color: var(--border-strong);
 }
+.header__legal {
+  font-size: 12px;
+  color: var(--text-faint);
+  text-decoration: none;
+}
+.header__legal:hover {
+  color: var(--text-muted);
+}
 .i-share {
   width: 13px;
   height: 12px;

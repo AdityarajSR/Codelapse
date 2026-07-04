@@ -1,0 +1,6 @@
+# Codelapse security & abuse policy (RFC 9116)
+# NOTE: replace the contact address below with a monitored, non-personal inbox before launch.
+Contact: mailto:security@codelapse.app
+Expires: 2027-07-04T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://codelapse.app/legal.html

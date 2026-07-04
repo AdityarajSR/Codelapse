@@ -9,12 +9,15 @@ import { Stage } from './components/Stage';
 import { StatusBanner } from './components/StatusBanner';
 import { VariablesPanel } from './components/VariablesPanel';
 import { defaultExample, examples } from './examples';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { decodeShare } from './lib/share';
 import { changedVars, cumulativeStdout } from './lib/traceModel';
 import { useRunner } from './runtime/useRunner';
 import { usePlayback } from './state/playbackStore';
 
 export default function App() {
+  useKeyboardShortcuts();
+
   const initial = useMemo(() => decodeShare(window.location.hash), []);
 
   const [code, setCode] = useState(() => (initial ? initial.source : defaultExample.code));
