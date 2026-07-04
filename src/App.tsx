@@ -4,7 +4,7 @@ import { CodeEditor } from './components/CodeEditor';
 import { Header } from './components/Header';
 import { OutputPanel } from './components/OutputPanel';
 import { PlaybackBar } from './components/PlaybackBar';
-import { StagePreview } from './components/StagePreview';
+import { Stage } from './components/Stage';
 import { StatusBanner } from './components/StatusBanner';
 import { VariablesPanel } from './components/VariablesPanel';
 import { defaultExample, examples } from './examples';
@@ -88,7 +88,7 @@ export default function App() {
 
         <div className="col col--right">
           <StatusBanner trace={storeTrace} workerError={error} />
-          <StagePreview locals={current?.locals ?? {}} />
+          <Stage locals={current?.locals ?? {}} />
           <div className="panels">
             <VariablesPanel locals={current?.locals ?? {}} changed={changed} stepKey={index} />
             <OutputPanel text={stdout} />

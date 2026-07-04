@@ -549,6 +549,91 @@ body {
   }
 }
 
+.stage__spacer {
+  flex: 1;
+}
+.toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.toggle span {
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.toggle__on {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.stage__floor--3d {
+  padding: 0;
+  min-height: 220px;
+  perspective: none;
+}
+.stage3d {
+  width: 100%;
+  height: 220px;
+}
+.stage__loading {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.tile3dLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: #eafcff;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.tile3dLabel em {
+  font-style: normal;
+  font-size: 10px;
+  color: #a9b6ff;
+}
+.tile--head {
+  background: linear-gradient(160deg, rgba(34, 211, 238, 0.4), rgba(124, 108, 255, 0.24));
+  border-color: rgba(34, 211, 238, 0.55);
+}
+.tile--kv {
+  flex-direction: column;
+  gap: 2px;
+  min-width: 46px;
+  height: auto;
+  padding: 8px 6px;
+}
+.tile--kv .tile__k {
+  font-size: 10px;
+  color: #a9b6ff;
+}
+.tile--kv .tile__v {
+  font-size: 15px;
+}
+
+.fatal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
 /* --------------------------------------------------------------- banners -- */
 
 .banner {
