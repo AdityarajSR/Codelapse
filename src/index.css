@@ -651,6 +651,59 @@ body {
 .header__legal:hover {
   color: var(--text-muted);
 }
+
+/* first-run coach card */
+.coach {
+  position: fixed;
+  left: 20px;
+  bottom: 84px;
+  z-index: 40;
+  width: 300px;
+  max-width: calc(100vw - 40px);
+  background: var(--bg-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  animation: coachIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes coachIn {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+.coach__badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--grad);
+  box-shadow: 0 0 16px -2px var(--accent);
+  margin-bottom: 10px;
+}
+.coach h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.coach ul {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.coach li {
+  margin-bottom: 6px;
+}
+.coach kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
 .i-share {
   width: 13px;
   height: 12px;
@@ -888,6 +941,48 @@ body {
   height: 0;
   border-style: solid;
   border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent currentColor;
+}
+.i-changeprev,
+.i-changenext {
+  width: 12px;
+  height: 12px;
+  position: relative;
+}
+.i-changeprev::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 12px;
+  background: currentColor;
+}
+.i-changeprev::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  border-style: solid;
+  border-width: 6px 9px 6px 0;
+  border-color: transparent currentColor transparent transparent;
+}
+.i-changenext::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 2px;
+  height: 12px;
+  background: currentColor;
+}
+.i-changenext::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  top: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 9px;
   border-color: transparent transparent transparent currentColor;
 }
 

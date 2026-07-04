@@ -32,11 +32,13 @@ export function useKeyboardShortcuts() {
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          s.stepBack();
+          if (e.shiftKey) s.jumpChange(-1);
+          else s.stepBack();
           break;
         case 'ArrowRight':
           e.preventDefault();
-          s.stepForward();
+          if (e.shiftKey) s.jumpChange(1);
+          else s.stepForward();
           break;
         case 'Home':
           e.preventDefault();

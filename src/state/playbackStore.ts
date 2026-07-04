@@ -16,6 +16,8 @@ interface PlaybackState {
   seek: (i: number) => void;
   stepForward: () => void;
   stepBack: () => void;
+  /** Jump to the next/previous step where a variable changed. */
+  jumpChange: (dir: 1 | -1) => void;
   play: () => void;
   pause: () => void;
   toggle: () => void;
@@ -45,6 +47,27 @@ export const usePlayback = create<PlaybackState>((set, get) => ({
   },
 
   stepBack: () => set((s) => ({ index: Math.max(0, s.index - 1), playing: false })),
+
+  jumpChange: (dir) => {
+    const { trace, index } = get();
+    if (!trace) return;
+    const steps = trace.steps;
+    for (let i = index + dir; i >= 0 && i < steps.length; i += dir) {
+      const prev = i > 0 ? steps[i - 1].locals : {};
+      const cur = steps[i].locals;
+      let changed = false;
+      for (const k in cur) {
+        if (!prev[k] || prev[k].repr !== cur[k].repr) {
+          changed = true;
+          break;
+        }
+      }
+      if (changed) {
+        set({ index: i, playing: false });
+        return;
+      }
+    }
+  },
 
   play: () => {
     const { trace, index } = get();

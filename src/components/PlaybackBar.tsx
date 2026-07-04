@@ -11,6 +11,7 @@ export function PlaybackBar() {
   const toggle = usePlayback((s) => s.toggle);
   const stepForward = usePlayback((s) => s.stepForward);
   const stepBack = usePlayback((s) => s.stepBack);
+  const jumpChange = usePlayback((s) => s.jumpChange);
   const seek = usePlayback((s) => s.seek);
   const setSpeed = usePlayback((s) => s.setSpeed);
 
@@ -32,6 +33,15 @@ export function PlaybackBar() {
   return (
     <div className="playbar">
       <div className="playbar__controls">
+        <button
+          className="icon-btn"
+          onClick={() => jumpChange(-1)}
+          disabled={disabled}
+          title="Previous change (Shift+←)"
+          aria-label="Previous change"
+        >
+          <span className="i i-changeprev" aria-hidden="true" />
+        </button>
         <button className="icon-btn" onClick={stepBack} disabled={disabled} aria-label="Step back">
           <span className="i i-prev" aria-hidden="true" />
         </button>
@@ -50,6 +60,15 @@ export function PlaybackBar() {
           aria-label="Step forward"
         >
           <span className="i i-next" aria-hidden="true" />
+        </button>
+        <button
+          className="icon-btn"
+          onClick={() => jumpChange(1)}
+          disabled={disabled}
+          title="Next change (Shift+→)"
+          aria-label="Next change"
+        >
+          <span className="i i-changenext" aria-hidden="true" />
         </button>
       </div>
 

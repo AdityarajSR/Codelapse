@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CallStackPanel } from './components/CallStackPanel';
+import { Coachmarks } from './components/Coachmarks';
 import { CodeEditor } from './components/CodeEditor';
 import { Header } from './components/Header';
 import { OutputPanel } from './components/OutputPanel';
@@ -140,6 +141,8 @@ export default function App() {
         trace={storeTrace}
         step={index}
       />
+
+      <Coachmarks />
     </div>
   );
 }
