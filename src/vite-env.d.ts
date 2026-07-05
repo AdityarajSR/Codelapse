@@ -7,6 +7,11 @@ declare module '*.py?raw' {
   export default src;
 }
 
+declare module '*.woff?url' {
+  const src: string;
+  export default src;
+}
+
 // gifenc ships no type declarations.
 declare module 'gifenc' {
   export interface GifEncoder {

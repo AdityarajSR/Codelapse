@@ -1,7 +1,21 @@
-import { type CSSProperties, useEffect } from 'react';
+import { type CSSProperties, useEffect, useMemo } from 'react';
 import { usePlayback } from '../state/playbackStore';
+import {
+  JumpBackIcon,
+  JumpForwardIcon,
+  PauseIcon,
+  PlayIcon,
+  StepBackIcon,
+  StepForwardIcon,
+} from './Icons';
 
 const SPEEDS = [1, 2, 4, 8, 16];
+
+interface Tick {
+  i: number;
+  type: 'call' | 'out' | 'err';
+  pct: number;
+}
 
 export function PlaybackBar() {
   const trace = usePlayback((s) => s.trace);
@@ -19,6 +33,28 @@ export function PlaybackBar() {
   const last = Math.max(0, total - 1);
   const disabled = total === 0;
   const line = trace?.steps[index]?.line;
+
+  // Event markers on the timeline: function calls, prints, and the error step —
+  // the scrubber becomes a readable map of the run, not a bare slider.
+  const ticks = useMemo<Tick[]>(() => {
+    if (!trace || trace.steps.length < 2) return [];
+    const steps = trace.steps;
+    const n = steps.length;
+    const stride = Math.max(1, Math.ceil(n / 240));
+    const out: Tick[] = [];
+    for (let i = 0; i < n; i++) {
+      const s = steps[i];
+      const type: Tick['type'] | null =
+        s.event === 'exception' ? 'err' : s.event === 'call' ? 'call' : s.stdout ? 'out' : null;
+      if (!type) continue;
+      if (type !== 'err' && stride > 1 && i % stride !== 0) continue;
+      out.push({ i, type, pct: (i / (n - 1)) * 100 });
+    }
+    if (trace.status === 'runtime-error' && n > 1) {
+      out.push({ i: n - 1, type: 'err', pct: 100 });
+    }
+    return out;
+  }, [trace]);
 
   // Auto-advance ticker on a rAF accumulator: frame-aligned commits, no drift,
   // and it pauses automatically when the tab is hidden (setInterval doesn't).
@@ -53,26 +89,34 @@ export function PlaybackBar() {
           title="Previous change (Shift+←)"
           aria-label="Previous change"
         >
-          <span className="i i-changeprev" aria-hidden="true" />
-        </button>
-        <button className="icon-btn" onClick={stepBack} disabled={disabled} aria-label="Step back">
-          <span className="i i-prev" aria-hidden="true" />
+          <JumpBackIcon size={16} />
         </button>
         <button
-          className="icon-btn icon-btn--primary"
+          className="icon-btn"
+          onClick={stepBack}
+          disabled={disabled}
+          title="Step back (←)"
+          aria-label="Step back"
+        >
+          <StepBackIcon size={17} />
+        </button>
+        <button
+          className={`icon-btn icon-btn--primary${playing ? ' is-playing' : ''}`}
           onClick={toggle}
           disabled={disabled}
+          title={playing ? 'Pause (Space)' : 'Play (Space)'}
           aria-label={playing ? 'Pause' : 'Play'}
         >
-          <span className={`i ${playing ? 'i-pause' : 'i-play'}`} aria-hidden="true" />
+          {playing ? <PauseIcon size={19} /> : <PlayIcon size={19} />}
         </button>
         <button
           className="icon-btn"
           onClick={stepForward}
           disabled={disabled}
+          title="Step forward (→)"
           aria-label="Step forward"
         >
-          <span className="i i-next" aria-hidden="true" />
+          <StepForwardIcon size={17} />
         </button>
         <button
           className="icon-btn"
@@ -81,41 +125,65 @@ export function PlaybackBar() {
           title="Next change (Shift+→)"
           aria-label="Next change"
         >
-          <span className="i i-changenext" aria-hidden="true" />
+          <JumpForwardIcon size={16} />
         </button>
       </div>
 
-      <input
-        className="scrubber"
-        style={{ '--progress': `${progress}%` } as CSSProperties}
-        type="range"
-        min={0}
-        max={last}
-        value={index}
-        onChange={(e) => seek(Number(e.target.value))}
-        disabled={disabled}
-        aria-label="Timeline"
-      />
+      <div className="timeline">
+        <input
+          className="scrubber"
+          style={{ '--progress': `${progress}%` } as CSSProperties}
+          type="range"
+          min={0}
+          max={last}
+          value={index}
+          onChange={(e) => seek(Number(e.target.value))}
+          disabled={disabled}
+          aria-label="Timeline"
+          aria-valuetext={
+            disabled
+              ? 'No run yet'
+              : `Step ${index + 1} of ${total}${line != null ? `, line ${line}` : ''}`
+          }
+        />
+        <div className="timeline__ticks" aria-hidden="true">
+          {ticks.map((t) => (
+            <span
+              key={`${t.type}:${t.i}`}
+              className={`tick tick--${t.type}`}
+              style={{ left: `${t.pct}%` }}
+            />
+          ))}
+        </div>
+      </div>
 
       <div className="playbar__meta">
-        <span className="playbar__step">{disabled ? '—' : `${index + 1} / ${total}`}</span>
+        <span className="playbar__step">
+          {disabled ? (
+            '—'
+          ) : (
+            <>
+              {index + 1}
+              <em> / {total}</em>
+            </>
+          )}
+        </span>
         {line != null && <span className="playbar__line">line {line}</span>}
       </div>
 
-      <label className="speed">
-        <span className="sr-only">Speed</span>
-        <select
-          value={speed}
-          onChange={(e) => setSpeed(Number(e.target.value))}
-          disabled={disabled}
-        >
-          {SPEEDS.map((s) => (
-            <option key={s} value={s}>
-              {s}×
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="speed" role="group" aria-label="Playback speed">
+        {SPEEDS.map((s) => (
+          <button
+            key={s}
+            className={`speed__opt${s === speed ? ' speed__opt--on' : ''}`}
+            onClick={() => setSpeed(s)}
+            disabled={disabled}
+            aria-pressed={s === speed}
+          >
+            {s}×
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

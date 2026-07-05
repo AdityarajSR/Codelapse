@@ -1,5 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+// Self-hosted variable fonts — bundled by Vite, no external font CDN, so the
+// edge-hosted app stays fully self-contained.
+import '@fontsource-variable/inter/index.css';
+import '@fontsource-variable/space-grotesk/index.css';
+import '@fontsource-variable/jetbrains-mono/index.css';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';

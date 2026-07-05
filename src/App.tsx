@@ -38,12 +38,12 @@ export default function App() {
     if (trace) setTrace(trace);
   }, [trace, setTrace]);
 
-  // One-time init: replay a shared trace, wait for shared source (gate), or
-  // auto-run the built-in example. Only the built-in example is ever auto-run.
-  const initedRef = useRef(false);
+  // Init: replay a shared trace, wait for shared source (gate), or auto-run
+  // the built-in example. Only the built-in example is ever auto-run.
+  // Deliberately NOT ref-guarded: under StrictMode the worker from the first
+  // effect pass is terminated, so init must re-fire against the live worker —
+  // every action here is idempotent.
   useEffect(() => {
-    if (initedRef.current) return;
-    initedRef.current = true;
     if (initial?.kind === 'trace') {
       setTrace(initial.trace);
       seek(initial.step);

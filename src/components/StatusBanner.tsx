@@ -40,7 +40,7 @@ export function StatusBanner({ trace, workerError }: StatusBannerProps) {
       );
     case 'step-cap':
       return (
-        <div className="banner banner--info">
+        <div className="banner banner--info" role="status">
           <strong>Your program ran a lot of steps.</strong>
           <span>
             We stopped after {trace.steps.length.toLocaleString()} steps — likely a long or infinite
@@ -50,7 +50,7 @@ export function StatusBanner({ trace, workerError }: StatusBannerProps) {
       );
     case 'output-cap':
       return (
-        <div className="banner banner--info">
+        <div className="banner banner--info" role="status">
           <strong>That produced a lot of output.</strong>
           <span>We stopped capturing after the output got very large.</span>
         </div>

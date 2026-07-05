@@ -1,5 +1,6 @@
 import type { RunPhase } from '../runtime/useRunner';
 import type { Example } from '../examples';
+import { BrandMark, PlayIcon, ShareIcon } from './Icons';
 
 interface HeaderProps {
   phase: RunPhase;
@@ -31,8 +32,12 @@ export function Header({
   return (
     <header className="header">
       <div className="brand">
-        <span className="brand__mark" aria-hidden="true" />
-        <span className="brand__name">Codelapse</span>
+        <span className="brand__mark" aria-hidden="true">
+          <BrandMark size={26} />
+        </span>
+        <span className="brand__name">
+          Code<b>lapse</b>
+        </span>
         <span className="brand__lang">Python</span>
       </div>
 
@@ -66,16 +71,12 @@ export function Header({
       </a>
 
       <button className="btn btn--ghost" onClick={onShare}>
-        <span className="i i-share" aria-hidden="true" />
+        <ShareIcon />
         Share
       </button>
 
       <button className="btn btn--run" onClick={onRun} disabled={busy} aria-busy={busy}>
-        {busy ? (
-          <span className="spinner" aria-hidden="true" />
-        ) : (
-          <span className="btn__play" aria-hidden="true" />
-        )}
+        {busy ? <span className="spinner" aria-hidden="true" /> : <PlayIcon size={14} />}
         {runLabel[phase]}
       </button>
     </header>

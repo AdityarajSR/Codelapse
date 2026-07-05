@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CloseIcon } from './Icons';
 
 const KEY = 'codelapse.welcomed.v1';
 
@@ -15,6 +16,13 @@ export function Coachmarks() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!show) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && dismiss();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [show]);
+
   if (!show) return null;
 
   const dismiss = () => {
@@ -27,7 +35,10 @@ export function Coachmarks() {
   };
 
   return (
-    <div className="coach" role="dialog" aria-label="Welcome to Codelapse">
+    <aside className="coach" role="note" aria-label="Getting started">
+      <button className="coach__close icon-btn" onClick={dismiss} aria-label="Dismiss">
+        <CloseIcon size={13} />
+      </button>
       <div className="coach__badge" aria-hidden="true" />
       <h3>Watch your code run</h3>
       <ul>
@@ -44,6 +55,6 @@ export function Coachmarks() {
       <button className="btn btn--run" onClick={dismiss}>
         Got it
       </button>
-    </div>
+    </aside>
   );
 }

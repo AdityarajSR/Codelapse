@@ -9,28 +9,52 @@ interface VariablesPanelProps {
   stepKey: number;
 }
 
-export function VariablesPanel(props: VariablesPanelProps) {
-  const { locals, changed, stepKey } = props;
+export function VariablesPanel({ locals, prevLocals, changed, stepKey }: VariablesPanelProps) {
   const names = Object.keys(locals);
 
   return (
     <section className="panel">
-      <h2 className="panel__title">Variables</h2>
+      <h2 className="panel__title">
+        <span className="panel__tick panel__tick--vars" aria-hidden="true" />
+        Variables
+        {names.length > 0 && <span className="panel__count">{names.length}</span>}
+      </h2>
       <div className="panel__body">
         {names.length === 0 ? (
-          <p className="empty">Nothing in scope yet — press play to begin.</p>
+          <p className="empty">Nothing in scope yet — press Run to trace your code.</p>
         ) : (
           <ul className="vars">
             {names.map((name) => {
+              const snap = locals[name];
+              const prev = prevLocals?.[name];
               const flash = changed.has(name);
+              // old → new is the pedagogically premium moment; only when short
+              // enough to stay readable on one row.
+              const showOld =
+                flash &&
+                prev != null &&
+                prev.repr !== snap.repr &&
+                prev.repr.length <= 16 &&
+                snap.repr.length <= 20;
               return (
                 <li
                   key={flash ? `${name}:${stepKey}` : name}
                   className={`var${flash ? ' var--flash' : ''}`}
                 >
-                  <span className="var__name">{name}</span>
-                  <span className="var__type">{locals[name].type}</span>
-                  <span className="var__val">{locals[name].repr}</span>
+                  <span className="var__name">
+                    <i className={`kdot kdot--${snap.kind}`} aria-hidden="true" />
+                    {name}
+                    {flash && (
+                      <span className="var__delta" aria-label="changed">
+                        ▲
+                      </span>
+                    )}
+                  </span>
+                  <span className="var__type">{snap.type}</span>
+                  <span className="var__val">
+                    {showOld && <s className="var__old">{prev.repr}</s>}
+                    {snap.repr}
+                  </span>
                 </li>
               );
             })}

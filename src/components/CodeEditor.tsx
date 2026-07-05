@@ -3,6 +3,7 @@ import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { useEffect, useRef } from 'react';
 import { activeLineField, setActiveLine } from '../editor/activeLine';
 import { codelapseEditorTheme } from '../editor/editorTheme';
+import { codelapseHighlight } from '../editor/highlight';
 
 interface CodeEditorProps {
   value: string;
@@ -10,6 +11,8 @@ interface CodeEditorProps {
   activeLine: number | null;
   editable?: boolean;
 }
+
+const extensions = [python(), activeLineField, codelapseEditorTheme, codelapseHighlight];
 
 export function CodeEditor({ value, onChange, activeLine, editable = true }: CodeEditorProps) {
   const ref = useRef<ReactCodeMirrorRef>(null);
@@ -25,7 +28,7 @@ export function CodeEditor({ value, onChange, activeLine, editable = true }: Cod
       value={value}
       onChange={onChange}
       editable={editable}
-      theme="dark"
+      theme="none"
       height="100%"
       basicSetup={{
         lineNumbers: true,
@@ -33,7 +36,7 @@ export function CodeEditor({ value, onChange, activeLine, editable = true }: Cod
         highlightActiveLine: false,
         highlightActiveLineGutter: false,
       }}
-      extensions={[python(), activeLineField, codelapseEditorTheme]}
+      extensions={extensions}
     />
   );
 }
