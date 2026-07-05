@@ -13,5 +13,20 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        // Long-cacheable vendor chunks; app-code edits no longer bust them.
+        // (three/@react-three already isolate via the lazy Stage3D chunk.)
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          codemirror: [
+            '@uiw/react-codemirror',
+            '@codemirror/lang-python',
+            '@codemirror/view',
+            '@codemirror/state',
+          ],
+        },
+      },
+    },
   },
 });

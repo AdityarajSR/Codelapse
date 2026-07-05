@@ -26,7 +26,14 @@ export function useRunner() {
       if (msg.type === 'status') {
         setPhase(msg.phase === 'loading' ? 'booting' : 'running');
       } else if (msg.type === 'result') {
-        setTrace(msg.trace);
+        const trace: Trace = {
+          schemaVersion: 1,
+          language: 'python',
+          site: 'browser',
+          runtimeVersion: msg.runtimeVersion,
+          ...JSON.parse(msg.json),
+        };
+        setTrace(trace);
         setError(null);
         setPhase('done');
       } else if (msg.type === 'error') {

@@ -2,12 +2,15 @@ import type { VarSnapshot } from '../types/trace';
 
 interface VariablesPanelProps {
   locals: Record<string, VarSnapshot>;
+  /** previous step's locals — used to show old → new on changed values */
+  prevLocals?: Record<string, VarSnapshot>;
   changed: Set<string>;
   /** changes each step so a changed row re-mounts and re-runs its flash animation */
   stepKey: number;
 }
 
-export function VariablesPanel({ locals, changed, stepKey }: VariablesPanelProps) {
+export function VariablesPanel(props: VariablesPanelProps) {
+  const { locals, changed, stepKey } = props;
   const names = Object.keys(locals);
 
   return (

@@ -68,5 +68,7 @@ export type WorkerRequest = { id: number; type: 'run'; source: string };
 
 export type WorkerResponse =
   | { id: number; type: 'status'; phase: 'loading' | 'ready' }
-  | { id: number; type: 'result'; trace: Trace }
+  /** The trace body as a raw JSON string — a string structured-clones as a
+   * cheap memcpy across the worker boundary; the main thread parses once. */
+  | { id: number; type: 'result'; json: string; runtimeVersion: string }
   | { id: number; type: 'error'; message: string };

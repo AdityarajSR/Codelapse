@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import { Stage2D } from '../stage/Stage2D';
 import { pickPrimary } from '../stage/structures';
 import { hasWebGL } from '../stage/webgl';
@@ -11,14 +11,15 @@ interface StageProps {
   locals: Record<string, VarSnapshot>;
 }
 
-/** Host for the data-structure stage: WebGL 3D by default (lazy-loaded, so it
- * never bloats the initial bundle), with a flat 2D fallback and a manual toggle. */
+/** Host for the data-structure stage: WebGL 3D by default (lazy-loaded), flat
+ * 2D fallback, manual toggle. The structure is parsed ONCE here and passed
+ * down — Stage2D/Stage3D never re-parse. */
 export function Stage({ locals }: StageProps) {
   const [webgl] = useState(() => hasWebGL());
   const [mode, setMode] = useState<'3d' | '2d'>(webgl ? '3d' : '2d');
 
-  const st = pickPrimary(locals);
-  const hint = st ? `${st.name} · ${st.kind}` : 'arrays, stacks & dicts as objects';
+  const st = useMemo(() => pickPrimary(locals), [locals]);
+  const hint = st ? `${st.name} · ${st.kind}` : 'lists, stacks & dicts as objects';
   const use3d = webgl && mode === '3d';
 
   return (
@@ -28,25 +29,33 @@ export function Stage({ locals }: StageProps) {
         <span className="stage__hint">{hint}</span>
         <span className="stage__spacer" />
         {webgl && (
-          <button
-            className="toggle"
-            onClick={() => setMode((m) => (m === '3d' ? '2d' : '3d'))}
-            aria-label={`Switch to ${mode === '3d' ? '2D' : '3D'} view`}
-          >
-            <span className={mode === '3d' ? 'toggle__on' : ''}>3D</span>
-            <span className={mode === '2d' ? 'toggle__on' : ''}>2D</span>
-          </button>
+          <div className="toggle" role="group" aria-label="Stage view">
+            <button
+              className={`toggle__opt${mode === '3d' ? ' toggle__opt--on' : ''}`}
+              aria-pressed={mode === '3d'}
+              onClick={() => setMode('3d')}
+            >
+              3D
+            </button>
+            <button
+              className={`toggle__opt${mode === '2d' ? ' toggle__opt--on' : ''}`}
+              aria-pressed={mode === '2d'}
+              onClick={() => setMode('2d')}
+            >
+              2D
+            </button>
+          </div>
         )}
       </div>
       <div className={`stage__floor${use3d ? ' stage__floor--3d' : ''}`}>
         {use3d ? (
-          <ErrorBoundary fallback={<Stage2D locals={locals} />}>
+          <ErrorBoundary fallback={<Stage2D st={st} />}>
             <Suspense fallback={<div className="stage__loading">loading 3D…</div>}>
-              <Stage3D locals={locals} />
+              <Stage3D st={st} />
             </Suspense>
           </ErrorBoundary>
         ) : (
-          <Stage2D locals={locals} />
+          <Stage2D st={st} />
         )}
       </div>
     </section>

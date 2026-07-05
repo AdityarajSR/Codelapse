@@ -1,20 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { CallStackPanel } from './components/CallStackPanel';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Coachmarks } from './components/Coachmarks';
-import { CodeEditor } from './components/CodeEditor';
+import { EditorCard } from './components/EditorCard';
 import { Header } from './components/Header';
-import { OutputPanel } from './components/OutputPanel';
 import { PlaybackBar } from './components/PlaybackBar';
-import { ShareDialog } from './components/ShareDialog';
-import { Stage } from './components/Stage';
-import { StatusBanner } from './components/StatusBanner';
-import { VariablesPanel } from './components/VariablesPanel';
+import { TraceView } from './components/TraceView';
 import { defaultExample, examples } from './examples';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { decodeShare } from './lib/share';
-import { changedVars, cumulativeStdout } from './lib/traceModel';
 import { useRunner } from './runtime/useRunner';
 import { usePlayback } from './state/playbackStore';
+
+// Loaded on demand — keeps qrcode/gifenc out of the entry chunk, and the
+// dialog stops existing (and re-rendering) entirely while closed.
+const ShareDialog = lazy(() =>
+  import('./components/ShareDialog').then((m) => ({ default: m.ShareDialog })),
+);
 
 export default function App() {
   useKeyboardShortcuts();
@@ -32,8 +32,6 @@ export default function App() {
   const setTrace = usePlayback((s) => s.setTrace);
   const seek = usePlayback((s) => s.seek);
   const play = usePlayback((s) => s.play);
-  const storeTrace = usePlayback((s) => s.trace);
-  const index = usePlayback((s) => s.index);
 
   // Push each new trace (from a run) into the single playback clock.
   useEffect(() => {
@@ -67,17 +65,6 @@ export default function App() {
     return undefined;
   }, [trace, play]);
 
-  const steps = useMemo(() => storeTrace?.steps ?? [], [storeTrace]);
-  const current = steps[index];
-  const previous = index > 0 ? steps[index - 1] : undefined;
-
-  const changed = useMemo(() => changedVars(previous, current), [previous, current]);
-  const stdout = useMemo(
-    () => (storeTrace ? cumulativeStdout(steps, index) : ''),
-    [storeTrace, steps, index],
-  );
-  const activeLine = current?.line ?? null;
-
   const onRun = () => {
     setPendingShare(false);
     run(code);
@@ -110,37 +97,18 @@ export default function App() {
 
       <main className="workspace">
         <div className="col col--editor">
-          <div className="card card--editor">
-            <CodeEditor value={code} onChange={setCode} activeLine={activeLine} />
-          </div>
+          <EditorCard code={code} onChange={setCode} />
         </div>
-
-        <div className="col col--right">
-          {pendingShare && (
-            <div className="banner banner--info">
-              <strong>Someone shared this code with you.</strong>
-              <span>Press Run to trace it — Codelapse never runs shared code automatically.</span>
-            </div>
-          )}
-          <StatusBanner trace={storeTrace} workerError={error} />
-          <Stage locals={current?.locals ?? {}} />
-          <div className="panels">
-            <VariablesPanel locals={current?.locals ?? {}} changed={changed} stepKey={index} />
-            <OutputPanel text={stdout} />
-            <CallStackPanel frames={current?.callStack ?? []} />
-          </div>
-        </div>
+        <TraceView pendingShare={pendingShare} workerError={error} />
       </main>
 
       <PlaybackBar />
 
-      <ShareDialog
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        source={code}
-        trace={storeTrace}
-        step={index}
-      />
+      {shareOpen && (
+        <Suspense fallback={null}>
+          <ShareDialog onClose={() => setShareOpen(false)} source={code} />
+        </Suspense>
+      )}
 
       <Coachmarks />
     </div>

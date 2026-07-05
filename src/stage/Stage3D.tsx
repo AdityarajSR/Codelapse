@@ -1,9 +1,8 @@
 import { Grid, Html, OrbitControls, RoundedBox } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import type { Group } from 'three';
-import { pickPrimary, type Structure } from './structures';
-import type { VarSnapshot } from '../types/trace';
+import type { Structure } from './structures';
 
 function easeOutBack(x: number): number {
   const c1 = 1.70158;
@@ -75,18 +74,16 @@ function Structure3D({ st }: { st: Structure }) {
 }
 
 interface Stage3DProps {
-  locals: Record<string, VarSnapshot>;
+  st: Structure | null;
 }
 
-export default function Stage3D({ locals }: Stage3DProps) {
-  const st = useMemo(() => pickPrimary(locals), [locals]);
-
+export default function Stage3D({ st }: Stage3DProps) {
   return (
     <div className="stage3d">
       <Canvas
         frameloop="demand"
         camera={{ position: [4.5, 4, 7.5], fov: 42 }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
         style={{ background: 'transparent' }}
       >

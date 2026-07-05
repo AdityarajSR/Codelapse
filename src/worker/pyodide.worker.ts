@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import tracerSrc from './tracer.py?raw';
-import type { Trace, WorkerRequest, WorkerResponse } from '../types/trace';
+import type { WorkerRequest, WorkerResponse } from '../types/trace';
 
 // Pinned Pyodide build. Pinning the exact version keeps shared-link traces
 // reproducible (docs/PLAN.md §9.2). Self-hosting these assets is a follow-up;
@@ -8,8 +8,6 @@ import type { Trace, WorkerRequest, WorkerResponse } from '../types/trace';
 const PYODIDE_VERSION = '0.26.4';
 const PYODIDE_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
 const RUNTIME_VERSION = `pyodide-${PYODIDE_VERSION}`;
-
-let pyodidePromise: Promise<any> | null = null;
 
 function post(msg: WorkerResponse) {
   (self as unknown as DedicatedWorkerGlobalScope).postMessage(msg);
@@ -38,42 +36,30 @@ function hardenNetwork() {
   }
 }
 
-async function getPyodide(id: number): Promise<any> {
-  if (!pyodidePromise) {
-    post({ id, type: 'status', phase: 'loading' });
-    pyodidePromise = (async () => {
-      const mod = await import(/* @vite-ignore */ `${PYODIDE_URL}pyodide.mjs`);
-      const py = await mod.loadPyodide({ indexURL: PYODIDE_URL });
-      py.runPython(tracerSrc);
-      hardenNetwork();
-      return py;
-    })();
-  }
-  const py = await pyodidePromise;
+// Warm start: begin fetching the ~7MB runtime the moment the worker spawns, so
+// the download overlaps React boot and first paint instead of serializing
+// behind the first run request.
+const pyodidePromise: Promise<any> = (async () => {
+  const mod = await import(/* @vite-ignore */ `${PYODIDE_URL}pyodide.mjs`);
+  const py = await mod.loadPyodide({ indexURL: PYODIDE_URL });
+  py.runPython(tracerSrc);
+  hardenNetwork();
   return py;
-}
+})();
+
+let ready = false;
 
 async function run(id: number, source: string) {
-  const py = await getPyodide(id);
+  if (!ready) post({ id, type: 'status', phase: 'loading' });
+  const py = await pyodidePromise;
+  ready = true;
   post({ id, type: 'status', phase: 'ready' });
 
   py.globals.set('_codelapse_src', source);
-  // run_trace returns a plain dict; serialize on the Python side to avoid
-  // proxy lifetime issues crossing the boundary.
+  // run_trace returns a plain dict; serialize on the Python side and ship the
+  // string — the main thread does the single JSON.parse.
   const json: string = py.runPython('import json as _json; _json.dumps(run_trace(_codelapse_src))');
-  const partial = JSON.parse(json) as Omit<
-    Trace,
-    'schemaVersion' | 'language' | 'site' | 'runtimeVersion'
-  >;
-
-  const trace: Trace = {
-    schemaVersion: 1,
-    language: 'python',
-    site: 'browser',
-    runtimeVersion: RUNTIME_VERSION,
-    ...partial,
-  };
-  post({ id, type: 'result', trace });
+  post({ id, type: 'result', json, runtimeVersion: RUNTIME_VERSION });
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>) => {

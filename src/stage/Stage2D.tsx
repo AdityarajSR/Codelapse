@@ -1,14 +1,11 @@
-import { pickPrimary } from './structures';
-import type { VarSnapshot } from '../types/trace';
+import type { Structure } from './structures';
 
 interface Stage2DProps {
-  locals: Record<string, VarSnapshot>;
+  st: Structure | null;
 }
 
 /** Flat fallback (and the "2D" toggle) for the data-structure stage. */
-export function Stage2D({ locals }: Stage2DProps) {
-  const st = pickPrimary(locals);
-
+export function Stage2D({ st }: Stage2DProps) {
   if (!st) {
     return (
       <div className="stage__placeholder">

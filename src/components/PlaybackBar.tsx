@@ -20,12 +20,25 @@ export function PlaybackBar() {
   const disabled = total === 0;
   const line = trace?.steps[index]?.line;
 
-  // Auto-advance ticker. State lives in the trace, so a plain interval is safe.
+  // Auto-advance ticker on a rAF accumulator: frame-aligned commits, no drift,
+  // and it pauses automatically when the tab is hidden (setInterval doesn't).
   useEffect(() => {
     if (!playing) return;
-    const ms = Math.max(50, 1000 / speed);
-    const id = window.setInterval(() => usePlayback.getState().stepForward(), ms);
-    return () => window.clearInterval(id);
+    let raf = 0;
+    let acc = 0;
+    let prev = performance.now();
+    const loop = (t: number) => {
+      acc += t - prev;
+      prev = t;
+      const ms = Math.max(50, 1000 / speed);
+      while (acc >= ms) {
+        acc -= ms;
+        usePlayback.getState().stepForward();
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
   }, [playing, speed]);
 
   const progress = last > 0 ? (index / last) * 100 : 0;

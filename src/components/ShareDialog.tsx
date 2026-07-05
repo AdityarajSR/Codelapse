@@ -1,52 +1,54 @@
 import QRCode from 'qrcode';
-import { useEffect, useMemo, useState } from 'react';
-import { downloadBlob, exportStageGif } from '../lib/gifExport';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildShareLink } from '../lib/share';
-import type { Trace } from '../types/trace';
+import { usePlayback } from '../state/playbackStore';
 
 type GifState = 'idle' | 'working' | 'done' | 'unavailable';
 
 interface ShareDialogProps {
-  open: boolean;
   onClose: () => void;
   source: string;
-  trace: Trace | null;
-  step: number;
 }
 
-export function ShareDialog({ open, onClose, source, trace, step }: ShareDialogProps) {
-  const link = useMemo(
-    () => (open ? buildShareLink(source, trace, step) : null),
-    [open, source, trace, step],
-  );
+/**
+ * Mounted only while open (lazy-loaded from App). The trace + step are
+ * snapshotted once on mount — so the GIF exporter can seek the playback clock
+ * without this dialog re-rendering or regenerating the link/QR per frame.
+ */
+export function ShareDialog({ onClose, source }: ShareDialogProps) {
+  const [snap] = useState(() => {
+    const s = usePlayback.getState();
+    return { trace: s.trace, step: s.index };
+  });
+  const link = useMemo(() => buildShareLink(source, snap.trace, snap.step), [source, snap]);
+
   const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [gif, setGif] = useState<GifState>('idle');
   const [gifPct, setGifPct] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setCopied(false);
-    setGif('idle');
-    setGifPct(0);
-    if (open && link) {
-      QRCode.toDataURL(link.url, {
-        margin: 1,
-        width: 160,
-        color: { dark: '#0b0b12', light: '#e8e8f0' },
-      })
-        .then(setQr)
-        .catch(() => setQr(null));
-    }
-  }, [open, link]);
+    QRCode.toDataURL(link.url, {
+      margin: 1,
+      width: 160,
+      color: { dark: '#0b0b14', light: '#e8e8f0' },
+    })
+      .then(setQr)
+      .catch(() => setQr(null));
+  }, [link]);
 
+  // Focus the link field on open; restore focus to the opener on close.
   useEffect(() => {
-    if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  if (!open || !link) return null;
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
+  }, [onClose]);
 
   const copy = async () => {
     try {
@@ -61,6 +63,8 @@ export function ShareDialog({ open, onClose, source, trace, step }: ShareDialogP
     setGif('working');
     setGifPct(0);
     try {
+      // gifenc + capture code load only when someone actually exports.
+      const { exportStageGif, downloadBlob } = await import('../lib/gifExport');
       const blob = await exportStageGif(setGifPct);
       if (!blob) {
         setGif('unavailable');
@@ -96,7 +100,12 @@ export function ShareDialog({ open, onClose, source, trace, step }: ShareDialogP
         </p>
 
         <div className="field">
-          <input readOnly value={link.url} onFocus={(e) => e.currentTarget.select()} />
+          <input
+            ref={inputRef}
+            readOnly
+            value={link.url}
+            onFocus={(e) => e.currentTarget.select()}
+          />
           <button className="btn btn--run" onClick={copy}>
             {copied ? 'Copied' : 'Copy'}
           </button>
@@ -111,7 +120,6 @@ export function ShareDialog({ open, onClose, source, trace, step }: ShareDialogP
 
         <div className="dialog__export">
           <button className="btn btn--ghost" onClick={exportGif} disabled={gif === 'working'}>
-            <span className="i i-download" aria-hidden="true" />
             {gif === 'working' ? `Rendering GIF… ${Math.round(gifPct * 100)}%` : 'Download GIF'}
           </button>
           {gif === 'unavailable' && (

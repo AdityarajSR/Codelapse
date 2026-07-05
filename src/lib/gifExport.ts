@@ -37,6 +37,10 @@ export async function exportStageGif(onProgress?: (p: number) => void): Promise<
   if (!ctx) return null;
 
   const gif = GIFEncoder();
+  // Quantize the palette ONCE (the scene keeps the same violet/cyan family
+  // throughout) and reuse it for every frame — quantize is by far the most
+  // expensive gifenc call, so this is a 3-5x export speedup.
+  let palette: number[][] | null = null;
   try {
     for (let k = 0; k < indices.length; k++) {
       store.seek(indices[k]);
@@ -47,7 +51,7 @@ export async function exportStageGif(onProgress?: (p: number) => void): Promise<
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(gl, 0, 0, w, h);
       const { data } = ctx.getImageData(0, 0, w, h);
-      const palette = quantize(data, 256);
+      if (!palette) palette = quantize(data, 256);
       const index = applyPalette(data, palette);
       gif.writeFrame(index, w, h, { palette, delay: 130 });
       onProgress?.((k + 1) / indices.length);
