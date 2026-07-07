@@ -107,6 +107,18 @@ export function CloseIcon({ size = 15 }: IconProps) {
   );
 }
 
+export function BulbIcon({ size = 13 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path
+        d="M12 3.5a6 6 0 0 0-3.6 10.8c.4.3.6.7.6 1.2v.5h6v-.5c0-.5.2-.9.6-1.2A6 6 0 0 0 12 3.5z"
+        {...stroke}
+      />
+      <path d="M9.5 19h5M10.5 21h3" {...stroke} />
+    </svg>
+  );
+}
+
 /** The brand mark: a play glyph on a gradient chip. */
 export function BrandMark({ size = 26 }: IconProps) {
   return (

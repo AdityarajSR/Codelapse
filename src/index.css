@@ -278,6 +278,44 @@ body {
   color: var(--text-muted);
 }
 
+/* rotating "did you know?" chip next to the language picker */
+.navFact {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 250px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-quiet);
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(1px);
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+}
+.navFact--in {
+  opacity: 1;
+  transform: none;
+}
+.navFact__bulb {
+  display: inline-flex;
+  flex: none;
+  color: var(--warn);
+}
+.navFact__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1200px) {
+  .navFact {
+    display: none;
+  }
+}
+
 .examplePicker select,
 .langPicker select {
   appearance: none;

@@ -2,6 +2,7 @@ import type { RunPhase } from '../runtime/useRunner';
 import type { Example } from '../examples';
 import type { Language } from '../types/trace';
 import { BrandMark, PlayIcon, ShareIcon } from './Icons';
+import { NavFact } from './NavFact';
 
 interface HeaderProps {
   phase: RunPhase;
@@ -61,6 +62,8 @@ export function Header({
           </optgroup>
         </select>
       </label>
+
+      <NavFact />
 
       <div className="header__spacer" />
 

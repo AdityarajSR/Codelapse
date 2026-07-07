@@ -1,16 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { randomFact } from '../lib/facts';
 import { CloseIcon } from './Icons';
 
 const KEY = 'codelapse.tour.v1';
-
-// Rotates daily — deterministic, no randomness needed.
-const FACTS = [
-  'The first computer "bug" was a real moth, taped into Harvard\'s Mark II logbook in 1947.',
-  'Python is named after Monty Python — not the snake.',
-  'Ada Lovelace wrote the first algorithm in 1843, a century before computers existed.',
-  'JavaScript was built in just 10 days in 1995.',
-  'The first 1GB hard drive (1980) weighed 250 kg — heavier than a fridge.',
-];
 
 interface TourStep {
   selector: string;
@@ -60,6 +52,8 @@ export function FirstRunTour() {
   const [phase, setPhase] = useState<Phase>(null);
   const [steps, setSteps] = useState<TourStep[]>(ALL_STEPS);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  // Chosen once per open — so it differs across browsers/sessions.
+  const [fact] = useState(randomFact);
   const primaryRef = useRef<HTMLButtonElement>(null);
   const shakeRef = useRef<HTMLDivElement>(null);
 
@@ -143,7 +137,6 @@ export function FirstRunTour() {
   if (phase === null) return null;
 
   if (phase === 'welcome') {
-    const fact = FACTS[new Date().getDate() % FACTS.length];
     return (
       <div className="overlay" onClick={bump}>
         <div
