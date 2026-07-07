@@ -287,7 +287,7 @@ body {
      and the header__spacer after it keeps ~10px+ breathing room to the right */
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 460px;
+  max-width: 560px;
   padding: 9px 18px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -314,7 +314,8 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-@media (max-width: 1200px) {
+/* only show once the header is wide enough to render the full fact */
+@media (max-width: 1360px) {
   .navFact {
     display: none;
   }
