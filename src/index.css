@@ -283,12 +283,16 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  max-width: 250px;
-  padding: 5px 12px;
+  /* wide enough for the longest fact; shrinks (ellipsis) rather than overflow,
+     and the header__spacer after it keeps ~10px+ breathing room to the right */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 380px;
+  padding: 5px 13px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
-  color: var(--text-quiet);
+  color: var(--text-muted);
   font-size: 12px;
   opacity: 0;
   transform: translateY(1px);
