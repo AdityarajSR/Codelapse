@@ -50,9 +50,13 @@ export interface Diagnostic {
   col?: number | null;
 }
 
+/** Languages the browser tier can trace today. Server-tier languages
+ * (Go, Java, C/C++ — see PLAN.md §6) join this union when that tier ships. */
+export type Language = 'python' | 'javascript';
+
 export interface Trace {
   schemaVersion: 1;
-  language: 'python';
+  language: Language;
   site: 'browser';
   status: TraceStatus;
   diagnostics: Diagnostic[];

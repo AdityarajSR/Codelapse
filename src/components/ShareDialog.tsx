@@ -2,12 +2,14 @@ import QRCode from 'qrcode';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildShareLink } from '../lib/share';
 import { usePlayback } from '../state/playbackStore';
+import type { Language } from '../types/trace';
 
 type GifState = 'idle' | 'working' | 'done' | 'unavailable';
 
 interface ShareDialogProps {
   onClose: () => void;
   source: string;
+  language: Language;
 }
 
 /**
@@ -15,12 +17,15 @@ interface ShareDialogProps {
  * snapshotted once on mount — so the GIF exporter can seek the playback clock
  * without this dialog re-rendering or regenerating the link/QR per frame.
  */
-export function ShareDialog({ onClose, source }: ShareDialogProps) {
+export function ShareDialog({ onClose, source, language }: ShareDialogProps) {
   const [snap] = useState(() => {
     const s = usePlayback.getState();
     return { trace: s.trace, step: s.index };
   });
-  const link = useMemo(() => buildShareLink(source, snap.trace, snap.step), [source, snap]);
+  const link = useMemo(
+    () => buildShareLink(source, snap.trace, snap.step, language),
+    [source, snap, language],
+  );
 
   const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);

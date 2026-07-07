@@ -28,7 +28,21 @@ describe('share codec', () => {
   it('round-trips source when there is no trace', () => {
     const link = buildShareLink('print(1)', null, 0);
     expect(link.mode).toBe('source');
-    expect(decodeShare(hashOf(link.url))).toEqual({ kind: 'source', source: 'print(1)' });
+    expect(decodeShare(hashOf(link.url))).toEqual({
+      kind: 'source',
+      source: 'print(1)',
+      language: 'python',
+    });
+  });
+
+  it('carries the language for non-Python source links', () => {
+    const link = buildShareLink('console.log(1)', null, 0, 'javascript');
+    const decoded = decodeShare(hashOf(link.url));
+    expect(decoded).toEqual({
+      kind: 'source',
+      source: 'console.log(1)',
+      language: 'javascript',
+    });
   });
 
   it('embeds and round-trips a small trace with its source and step', () => {

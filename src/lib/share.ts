@@ -1,5 +1,5 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
-import type { Trace } from '../types/trace';
+import type { Language, Trace } from '../types/trace';
 
 /**
  * Hybrid share model (PLAN.md §9.11):
@@ -13,7 +13,7 @@ const MAX_TRACE_ENCODED = 14000;
 const URL_WARN_LENGTH = 8000;
 
 export type Shared =
-  | { kind: 'source'; source: string }
+  | { kind: 'source'; source: string; language: Language }
   | { kind: 'trace'; source: string; trace: Trace; step: number };
 
 export interface ShareLink {
@@ -43,7 +43,8 @@ export function decodeShare(hash: string): Shared | null {
     if (c) {
       const source = decompressFromEncodedURIComponent(c);
       if (source == null) return null;
-      return { kind: 'source', source };
+      const language: Language = params.get('l') === 'javascript' ? 'javascript' : 'python';
+      return { kind: 'source', source, language };
     }
   } catch {
     return null;
@@ -51,18 +52,24 @@ export function decodeShare(hash: string): Shared | null {
   return null;
 }
 
-function sourceLink(source: string): ShareLink {
+function sourceLink(source: string, language: Language): ShareLink {
   const c = compressToEncodedURIComponent(source);
-  const url = `${baseUrl()}#c=${c}`;
+  const lang = language === 'python' ? '' : `&l=${language}`;
+  const url = `${baseUrl()}#c=${c}${lang}`;
   return { url, mode: 'source', tooLong: url.length > URL_WARN_LENGTH };
 }
 
-export function buildShareLink(source: string, trace: Trace | null, step: number): ShareLink {
+export function buildShareLink(
+  source: string,
+  trace: Trace | null,
+  step: number,
+  language: Language = 'python',
+): ShareLink {
   if (trace && trace.steps.length) {
     const encoded = compressToEncodedURIComponent(JSON.stringify({ src: source, trace }));
     if (encoded.length <= MAX_TRACE_ENCODED) {
       return { url: `${baseUrl()}#t=${encoded}&s=${step}`, mode: 'trace', tooLong: false };
     }
   }
-  return sourceLink(source);
+  return sourceLink(source, language);
 }

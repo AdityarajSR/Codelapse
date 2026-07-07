@@ -4,11 +4,12 @@ import { EditorCard } from './components/EditorCard';
 import { Header } from './components/Header';
 import { PlaybackBar } from './components/PlaybackBar';
 import { TraceView } from './components/TraceView';
-import { defaultExample, examples } from './examples';
+import { defaultExampleFor, examplesFor } from './examples';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { decodeShare } from './lib/share';
 import { useRunner } from './runtime/useRunner';
 import { usePlayback } from './state/playbackStore';
+import type { Language } from './types/trace';
 
 // Loaded on demand — keeps qrcode/gifenc out of the entry chunk, and the
 // dialog stops existing (and re-rendering) entirely while closed.
@@ -21,8 +22,13 @@ export default function App() {
 
   const initial = useMemo(() => decodeShare(window.location.hash), []);
 
-  const [code, setCode] = useState(() => (initial ? initial.source : defaultExample.code));
-  const [exampleId, setExampleId] = useState(defaultExample.id);
+  const [language, setLanguage] = useState<Language>(() =>
+    initial ? (initial.kind === 'trace' ? initial.trace.language : initial.language) : 'python',
+  );
+  const [code, setCode] = useState(() =>
+    initial ? initial.source : defaultExampleFor('python').code,
+  );
+  const [exampleId, setExampleId] = useState(defaultExampleFor('python').id);
   // Shared *source* opens behind a press-play gate — never auto-run (§9.1).
   const [pendingShare, setPendingShare] = useState(initial?.kind === 'source');
   const [shareOpen, setShareOpen] = useState(false);
@@ -39,7 +45,7 @@ export default function App() {
   }, [trace, setTrace]);
 
   // Init: replay a shared trace, wait for shared source (gate), or auto-run
-  // the built-in example. Only the built-in example is ever auto-run.
+  // the built-in example. Only built-in examples are ever auto-run.
   // Deliberately NOT ref-guarded: under StrictMode the worker from the first
   // effect pass is terminated, so init must re-fire against the live worker —
   // every action here is idempotent.
@@ -50,7 +56,7 @@ export default function App() {
     } else if (initial?.kind === 'source') {
       // press-play gate — do nothing until the user runs it
     } else {
-      run(defaultExample.code);
+      run(defaultExampleFor('python').code, 'python');
     }
   }, [initial, run, setTrace, seek]);
 
@@ -67,10 +73,23 @@ export default function App() {
 
   const onRun = () => {
     setPendingShare(false);
-    run(code);
+    run(code, language);
   };
+
+  const onPickLanguage = (lang: Language) => {
+    if (lang === language) return;
+    const ex = defaultExampleFor(lang);
+    setLanguage(lang);
+    setExampleId(ex.id);
+    setCode(ex.code);
+    setTrace(null);
+    setPendingShare(false);
+    // our own curated example — safe to auto-run (never shared code)
+    run(ex.code, lang);
+  };
+
   const onPickExample = (id: string) => {
-    const ex = examples.find((e) => e.id === id);
+    const ex = examplesFor(language).find((e) => e.id === id);
     if (!ex) return;
     setExampleId(id);
     setCode(ex.code);
@@ -88,16 +107,18 @@ export default function App() {
 
       <Header
         phase={phase}
+        language={language}
+        onPickLanguage={onPickLanguage}
         onRun={onRun}
         onShare={() => setShareOpen(true)}
-        examples={examples}
+        examples={examplesFor(language)}
         currentExampleId={exampleId}
         onPickExample={onPickExample}
       />
 
       <main className="workspace">
         <div className="col col--editor">
-          <EditorCard code={code} onChange={setCode} />
+          <EditorCard code={code} onChange={setCode} language={language} />
         </div>
         <TraceView pendingShare={pendingShare} workerError={error} />
       </main>
@@ -106,7 +127,7 @@ export default function App() {
 
       {shareOpen && (
         <Suspense fallback={null}>
-          <ShareDialog onClose={() => setShareOpen(false)} source={code} />
+          <ShareDialog onClose={() => setShareOpen(false)} source={code} language={language} />
         </Suspense>
       )}
 

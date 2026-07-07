@@ -1,9 +1,12 @@
 import type { RunPhase } from '../runtime/useRunner';
 import type { Example } from '../examples';
+import type { Language } from '../types/trace';
 import { BrandMark, PlayIcon, ShareIcon } from './Icons';
 
 interface HeaderProps {
   phase: RunPhase;
+  language: Language;
+  onPickLanguage: (lang: Language) => void;
   onRun: () => void;
   onShare: () => void;
   examples: Example[];
@@ -13,7 +16,7 @@ interface HeaderProps {
 
 const runLabel: Record<RunPhase, string> = {
   idle: 'Run',
-  booting: 'Booting Python…',
+  booting: 'Loading engine…',
   running: 'Running…',
   done: 'Run',
   error: 'Run',
@@ -21,6 +24,8 @@ const runLabel: Record<RunPhase, string> = {
 
 export function Header({
   phase,
+  language,
+  onPickLanguage,
   onRun,
   onShare,
   examples,
@@ -38,8 +43,24 @@ export function Header({
         <span className="brand__name">
           Code<b>lapse</b>
         </span>
-        <span className="brand__lang">Python</span>
       </div>
+
+      <label className="langPicker">
+        <span className="sr-only">Language</span>
+        <select
+          value={language}
+          onChange={(e) => onPickLanguage(e.target.value as Language)}
+          aria-label="Language"
+        >
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript</option>
+          <optgroup label="Coming soon — server tier">
+            <option disabled>Java</option>
+            <option disabled>C</option>
+            <option disabled>C++</option>
+          </optgroup>
+        </select>
+      </label>
 
       <div className="header__spacer" />
 
@@ -60,7 +81,7 @@ export function Header({
 
       <span
         className="badge"
-        title="Python runs in your browser via WebAssembly — nothing is uploaded."
+        title="Your code runs in your browser via WebAssembly — nothing is uploaded."
       >
         <span className="badge__dot" aria-hidden="true" />
         runs in your browser
