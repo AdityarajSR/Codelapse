@@ -1185,6 +1185,54 @@ body {
   gap: 10px;
   margin-top: 16px;
 }
+/* blur + dim everything; the clip-path hole keeps the highlighted control sharp */
+.tourScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(7, 7, 12, 0.5);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+  animation: scrimIn 0.25s ease both;
+}
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+}
+/* transparent layer above the scrim: blocks the app and shakes on click */
+.tourCatcher {
+  position: fixed;
+  inset: 0;
+  z-index: 56;
+  cursor: default;
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-9px);
+  }
+  30% {
+    transform: translateX(8px);
+  }
+  45% {
+    transform: translateX(-6px);
+  }
+  60% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+}
+/* compound selectors so shake wins over the cards' own entrance animation */
+.tourPop.is-shaking,
+.dialog.is-shaking {
+  animation: shake 0.4s ease;
+}
 .tourRing {
   position: fixed;
   z-index: 60;

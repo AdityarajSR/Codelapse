@@ -61,6 +61,19 @@ export function FirstRunTour() {
   const [steps, setSteps] = useState<TourStep[]>(ALL_STEPS);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const primaryRef = useRef<HTMLButtonElement>(null);
+  const shakeRef = useRef<HTMLDivElement>(null);
+
+  // "You need to finish this first" — clicking outside the card shakes it.
+  const bump = () => {
+    const el = shakeRef.current;
+    if (!el) return;
+    el.classList.remove('is-shaking');
+    void el.offsetWidth; // reflow so the animation restarts on every click
+    el.classList.add('is-shaking');
+  };
+  const onShakeEnd = (e: React.AnimationEvent<HTMLDivElement>) => {
+    if (e.animationName === 'shake') e.currentTarget.classList.remove('is-shaking');
+  };
 
   useEffect(() => {
     try {
@@ -132,8 +145,16 @@ export function FirstRunTour() {
   if (phase === 'welcome') {
     const fact = FACTS[new Date().getDate() % FACTS.length];
     return (
-      <div className="overlay">
-        <div className="dialog" role="dialog" aria-modal="true" aria-label="Welcome to Codelapse">
+      <div className="overlay" onClick={bump}>
+        <div
+          className="dialog"
+          ref={shakeRef}
+          onAnimationEnd={onShakeEnd}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Welcome to Codelapse"
+        >
           <div className="dialog__head">
             <h2>Welcome to Codelapse</h2>
             <button className="icon-btn" onClick={decline} aria-label="Close">
@@ -171,6 +192,7 @@ export function FirstRunTour() {
   const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
   const vh = window.innerHeight || document.documentElement.clientHeight || 800;
   let popStyle: React.CSSProperties = {};
+  let clip: string | undefined;
   if (rect) {
     const above = rect.top > vh * 0.55;
     // floor at 12 last, so a negative upper bound can never win
@@ -181,10 +203,27 @@ export function FirstRunTour() {
     popStyle = above
       ? { left, bottom: Math.max(12, vh - rect.top + 14) }
       : { left, top: Math.min(rect.bottom + 14, vh - 12) };
+
+    // Spotlight hole: the scrim blurs/dims everything, this cut-out keeps the
+    // highlighted control sharp. A single clip-path ring seamed to the notch.
+    const pad = 8;
+    const L = Math.max(0, rect.left - pad);
+    const T = Math.max(0, rect.top - pad);
+    const R = rect.right + pad;
+    const B = rect.bottom + pad;
+    clip = `polygon(0px 0px, 0px 100%, ${L}px 100%, ${L}px ${T}px, ${R}px ${T}px, ${R}px ${B}px, ${L}px ${B}px, ${L}px 100%, 100% 100%, 100% 0px)`;
   }
 
   return (
     <>
+      {/* blur + dim scrim with a hole over the target (purely visual) */}
+      <div
+        className="tourScrim"
+        aria-hidden="true"
+        style={clip ? { clipPath: clip, WebkitClipPath: clip } : undefined}
+      />
+      {/* catches every click outside the popover → shake ("finish first") */}
+      <div className="tourCatcher" onClick={bump} />
       {rect && (
         <div
           className="tourRing"
@@ -197,7 +236,14 @@ export function FirstRunTour() {
           }}
         />
       )}
-      <div className="tourPop" style={popStyle} role="dialog" aria-label={step.title}>
+      <div
+        className="tourPop"
+        ref={shakeRef}
+        onAnimationEnd={onShakeEnd}
+        style={popStyle}
+        role="dialog"
+        aria-label={step.title}
+      >
         <div className="tourPop__head">
           <h3>{step.title}</h3>
           <button className="icon-btn tourPop__close" onClick={finish} aria-label="Skip tour">
