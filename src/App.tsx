@@ -1,8 +1,8 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { Coachmarks } from './components/Coachmarks';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { EditorCard } from './components/EditorCard';
 import { Header } from './components/Header';
 import { PlaybackBar } from './components/PlaybackBar';
+import { FirstRunTour } from './components/Tour';
 import { TraceView } from './components/TraceView';
 import { defaultExampleFor, examplesFor } from './examples';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -37,7 +37,6 @@ export default function App() {
 
   const setTrace = usePlayback((s) => s.setTrace);
   const seek = usePlayback((s) => s.seek);
-  const play = usePlayback((s) => s.play);
 
   // Push each new trace (from a run) into the single playback clock.
   useEffect(() => {
@@ -60,16 +59,8 @@ export default function App() {
     }
   }, [initial, run, setTrace, seek]);
 
-  // Auto-play the first locally-produced trace for an alive first impression.
-  const bootedRef = useRef(false);
-  useEffect(() => {
-    if (trace && !bootedRef.current) {
-      bootedRef.current = true;
-      const t = window.setTimeout(() => play(), 450);
-      return () => window.clearTimeout(t);
-    }
-    return undefined;
-  }, [trace, play]);
+  // Note: nothing auto-plays. The default example's trace loads so every panel
+  // has content, but playback waits for the user (see FirstRunTour).
 
   const onRun = () => {
     setPendingShare(false);
@@ -131,7 +122,7 @@ export default function App() {
         </Suspense>
       )}
 
-      <Coachmarks />
+      <FirstRunTour />
     </div>
   );
 }

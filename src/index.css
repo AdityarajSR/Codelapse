@@ -1164,68 +1164,97 @@ body {
   color: var(--text-quiet);
 }
 
-/* ----------------------------------------------------------------- coach -- */
+/* ------------------------------------------------------------------ tour -- */
 
-.coach {
+.tourFact {
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.tourFact strong {
+  color: var(--accent-2);
+}
+.tourActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.tourRing {
   position: fixed;
-  left: 20px;
-  bottom: 92px;
-  z-index: 40;
-  width: 302px;
-  max-width: calc(100vw - 40px);
+  z-index: 60;
+  border: 2px solid var(--accent-2);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 4px rgba(51, 214, 245, 0.15),
+    0 0 26px -4px var(--accent-2);
+  pointer-events: none;
+  transition:
+    top 0.28s ease,
+    left 0.28s ease,
+    width 0.28s ease,
+    height 0.28s ease;
+}
+.tourPop {
+  position: fixed;
+  z-index: 61;
+  width: 280px;
   background: var(--bg-1);
   border: 1px solid var(--border-strong);
-  border-radius: 16px;
-  padding: 18px;
+  border-radius: 14px;
+  padding: 14px 16px;
   box-shadow: var(--glass-edge), var(--shadow);
-  animation: coachIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation: dialogIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
-@keyframes coachIn {
-  from {
-    transform: translateY(12px);
-    opacity: 0;
-  }
-}
-.coach__close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-}
-.coach__badge {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  background: var(--grad);
-  box-shadow: 0 0 16px -2px var(--accent);
-  margin-bottom: 10px;
-}
-.coach h3 {
-  margin: 0 0 10px;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.coach ul {
-  margin: 0 0 14px;
-  padding-left: 18px;
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
-.coach li {
+.tourPop__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 6px;
 }
-.coach kbd {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1px 5px;
+.tourPop h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.tourPop__close {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+.tourPop p {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.tourPop__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tourPop__dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.tourPop__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--surface-3);
+}
+.tourPop__dots i.on {
+  background: var(--accent-2);
+}
+.tourPop__next {
+  padding: 7px 14px;
+  font-size: 12px;
 }
 
 .fatal {
@@ -1275,11 +1304,9 @@ body {
   .header {
     flex-wrap: wrap;
   }
-  .coach {
-    left: 12px;
-    right: 12px;
-    width: auto;
-    bottom: 110px;
+  .tourPop {
+    width: calc(100vw - 24px);
+    max-width: 320px;
   }
 }
 
@@ -1307,10 +1334,13 @@ body {
   .brand__mark,
   .stage__cube,
   .tile,
-  .coach,
+  .tourPop,
   .dialog,
   .icon-btn--primary.is-playing {
     animation: none !important;
+  }
+  .tourRing {
+    transition: none;
   }
   .btn--run::after {
     display: none;
