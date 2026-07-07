@@ -28,7 +28,7 @@ export function NavFact() {
   return (
     <span className={`navFact${shown ? ' navFact--in' : ''}`} title="Did you know?">
       <span className="navFact__bulb" aria-hidden="true">
-        <BulbIcon size={13} />
+        <BulbIcon size={16} />
       </span>
       <span className="navFact__text">{FACTS[i]}</span>
     </span>
