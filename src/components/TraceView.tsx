@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { changedVars } from '../lib/traceModel';
+import { pickPrimary, type Structure } from '../stage/structures';
 import { usePlayback } from '../state/playbackStore';
 import type { Step, VarSnapshot } from '../types/trace';
 import { CallStackPanel } from './CallStackPanel';
@@ -58,6 +59,24 @@ export function TraceView({ pendingShare, workerError }: TraceViewProps) {
   const changed = useMemo(() => changedVars(previous, current), [previous, current]);
   const stdout = useCumulativeStdout(steps, index);
 
+  // Sticky stage: each step shows the most recent structure seen up to that
+  // point, so when a function returns (locals go out of scope) the 3D objects
+  // stay on stage instead of vanishing. Precomputed once per trace — carry-
+  // forward is deterministic under scrubbing, and playback ticks stop paying
+  // for structure parsing entirely.
+  const stByStep = useMemo<(Structure | null)[]>(() => {
+    if (!trace) return [];
+    const arr: (Structure | null)[] = new Array(trace.steps.length);
+    let last: Structure | null = null;
+    for (let i = 0; i < trace.steps.length; i++) {
+      const parsed = pickPrimary(trace.steps[i].locals);
+      if (parsed) last = parsed;
+      arr[i] = last;
+    }
+    return arr;
+  }, [trace]);
+  const st = stByStep[index] ?? null;
+
   return (
     <div className="col col--right">
       {pendingShare && (
@@ -67,7 +86,7 @@ export function TraceView({ pendingShare, workerError }: TraceViewProps) {
         </div>
       )}
       <StatusBanner trace={trace} workerError={workerError} />
-      <Stage locals={current?.locals ?? EMPTY_LOCALS} />
+      <Stage st={st} />
       <div className="panels">
         <VariablesPanel
           locals={current?.locals ?? EMPTY_LOCALS}

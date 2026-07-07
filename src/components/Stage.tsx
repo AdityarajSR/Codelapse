@@ -1,24 +1,23 @@
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Stage2D } from '../stage/Stage2D';
-import { pickPrimary } from '../stage/structures';
+import type { Structure } from '../stage/structures';
 import { hasWebGL } from '../stage/webgl';
-import type { VarSnapshot } from '../types/trace';
 import { ErrorBoundary } from './ErrorBoundary';
 
 const Stage3D = lazy(() => import('../stage/Stage3D'));
 
 interface StageProps {
-  locals: Record<string, VarSnapshot>;
+  /** Already parsed (and carry-forward "sticky") structure from TraceView. */
+  st: Structure | null;
 }
 
 /** Host for the data-structure stage: WebGL 3D by default (lazy-loaded), flat
- * 2D fallback, manual toggle. The structure is parsed ONCE here and passed
- * down — Stage2D/Stage3D never re-parse. */
-export function Stage({ locals }: StageProps) {
+ * 2D fallback, manual toggle. Purely presentational — parsing happens once
+ * upstream in TraceView. */
+export function Stage({ st }: StageProps) {
   const [webgl] = useState(() => hasWebGL());
   const [mode, setMode] = useState<'3d' | '2d'>(webgl ? '3d' : '2d');
 
-  const st = useMemo(() => pickPrimary(locals), [locals]);
   const hint = st ? `${st.name} · ${st.kind}` : 'lists, stacks & dicts as objects';
   const use3d = webgl && mode === '3d';
 
