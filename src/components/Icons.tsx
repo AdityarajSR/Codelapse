@@ -107,6 +107,14 @@ export function CloseIcon({ size = 15 }: IconProps) {
   );
 }
 
+export function ChevronIcon({ size = 12 }: IconProps) {
+  return (
+    <svg {...base(size)}>
+      <path d="M6 9.5l6 6 6-6" {...stroke} />
+    </svg>
+  );
+}
+
 export function BulbIcon({ size = 13 }: IconProps) {
   return (
     <svg {...base(size)}>

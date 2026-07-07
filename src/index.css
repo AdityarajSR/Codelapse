@@ -321,28 +321,113 @@ body {
   }
 }
 
-.examplePicker select,
-.langPicker select {
-  appearance: none;
-  background-color: var(--surface);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a3a4c0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 11px center;
+/* custom dropdown — native <select> option lists can't be dark-themed */
+.select {
+  position: relative;
+  display: inline-flex;
+}
+.select__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 30px 8px 12px;
-  font-size: 13px;
+  padding: 8px 12px;
   font-family: inherit;
+  font-size: 13px;
   cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
-.examplePicker select:hover,
-.langPicker select:hover {
+.select__trigger:hover {
   border-color: var(--border-strong);
+  background: var(--surface-2);
 }
-.langPicker select {
+.select__icon {
+  display: inline-flex;
+  color: var(--text-quiet);
+}
+.select__value {
+  white-space: nowrap;
+}
+.select__chev {
+  display: inline-flex;
+  margin-left: 2px;
+  color: var(--text-quiet);
+  transition: transform 0.2s ease;
+}
+.select__chev--open {
+  transform: rotate(180deg);
+}
+.select__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 70;
+  min-width: 100%;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--bg-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--glass-edge), var(--shadow);
+  max-height: 320px;
+  overflow: auto;
+  animation: selectIn 0.16s ease both;
+}
+.exampleSelect .select__menu {
+  right: 0;
+  left: auto;
+}
+@keyframes selectIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.select__group {
+  padding: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.select__opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.select__opt--active {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.select__opt--selected {
+  color: var(--text);
+  font-weight: 500;
+}
+.select__check {
+  color: var(--accent-2);
+}
+.select__opt--disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+/* pill variant for the language switch */
+.langSelect .select__trigger {
   border-radius: 999px;
-  padding: 5px 28px 5px 12px;
+  padding: 6px 13px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);

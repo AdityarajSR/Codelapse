@@ -3,6 +3,7 @@ import type { Example } from '../examples';
 import type { Language } from '../types/trace';
 import { BrandMark, PlayIcon, ShareIcon } from './Icons';
 import { NavFact } from './NavFact';
+import { Select, type SelectOption } from './Select';
 
 interface HeaderProps {
   phase: RunPhase;
@@ -23,6 +24,14 @@ const runLabel: Record<RunPhase, string> = {
   error: 'Run',
 };
 
+const LANG_OPTIONS: SelectOption[] = [
+  { value: 'python', label: 'Python' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'java', label: 'Java', disabled: true, group: 'Coming soon — server tier' },
+  { value: 'c', label: 'C', disabled: true, group: 'Coming soon — server tier' },
+  { value: 'cpp', label: 'C++', disabled: true, group: 'Coming soon — server tier' },
+];
+
 export function Header({
   phase,
   language,
@@ -34,6 +43,7 @@ export function Header({
   onPickExample,
 }: HeaderProps) {
   const busy = phase === 'booting' || phase === 'running';
+  const exampleOptions: SelectOption[] = examples.map((ex) => ({ value: ex.id, label: ex.title }));
 
   return (
     <header className="header">
@@ -46,41 +56,25 @@ export function Header({
         </span>
       </div>
 
-      <label className="langPicker">
-        <span className="sr-only">Language</span>
-        <select
-          value={language}
-          onChange={(e) => onPickLanguage(e.target.value as Language)}
-          aria-label="Language"
-        >
-          <option value="python">Python</option>
-          <option value="javascript">JavaScript</option>
-          <optgroup label="Coming soon — server tier">
-            <option disabled>Java</option>
-            <option disabled>C</option>
-            <option disabled>C++</option>
-          </optgroup>
-        </select>
-      </label>
+      <Select
+        className="langSelect"
+        value={language}
+        options={LANG_OPTIONS}
+        onChange={(v) => onPickLanguage(v as Language)}
+        ariaLabel="Language"
+      />
 
       <NavFact />
 
       <div className="header__spacer" />
 
-      <label className="examplePicker">
-        <span className="sr-only">Choose an example</span>
-        <select
-          value={currentExampleId}
-          onChange={(e) => onPickExample(e.target.value)}
-          aria-label="Choose an example"
-        >
-          {examples.map((ex) => (
-            <option key={ex.id} value={ex.id}>
-              {ex.title}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        className="exampleSelect"
+        value={currentExampleId}
+        options={exampleOptions}
+        onChange={onPickExample}
+        ariaLabel="Choose an example"
+      />
 
       <span
         className="badge"
