@@ -9,7 +9,7 @@ A visual "dry run" of code for students and self-taught developers. **Multi-lang
 all driven by one playback UI.
 
 ## Status
-Planning → build. **Codelapse** (name locked). **v1 = browser-only, edge-hosted** (Cloudflare Pages) — Python + JS/TS
+Planning → build. **Codelapse** (name locked). **v1 = browser-only, edge-hosted** (Vercel) — Python + JS/TS
 run in the browser, no server needed. The self-hosted **home server is deferred** to the Go/compiled server tier,
 built only on proven demand. No AI. No signup/DB. Monetization deferred.
 
@@ -46,3 +46,16 @@ so user code — including code opened from a shared link — cannot reach the n
 `npm test` runs the Vitest suite (the trace-model pure functions today; the tracer fixture
 suite in PLAN.md §9.4 is next). CI (`.github/workflows/ci.yml`) runs type-check, lint,
 format-check, tests, and build on every push and PR.
+
+## Deploy (Vercel)
+
+The browser tier is a fully static site — no server. It deploys to Vercel with zero manual
+config; [vercel.json](vercel.json) pins the Vite framework preset, `npm run build`, the `dist`
+output, and long-cache headers for hashed assets.
+
+- **Import** the GitHub repo in Vercel → it auto-detects the settings above → Deploy.
+- Or via CLI: `npm i -g vercel && vercel` (preview) / `vercel --prod` (production).
+
+Everything runs in the visitor's browser, so there are no environment variables, no secrets,
+and no serverless functions. Pyodide streams from a pinned jsDelivr path at runtime (preconnected
+in `index.html`). The Go/compiled server tier is a separate, later deployment (see docs/PLAN.md).
