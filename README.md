@@ -15,9 +15,9 @@ output, a control‑flow graph, and a **3D stage** where arrays, stacks and dict
 [![100% client-side](https://img.shields.io/badge/100%25-client--side-3adfa5?style=flat-square)](#-how-it-works)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-33d6f5?style=flat-square)](#-contributing)
 
-**[▶ Live demo](https://codelapse.vercel.app)** &nbsp;·&nbsp; [Architecture](docs/PLAN.md) &nbsp;·&nbsp; [Roadmap](#-roadmap)
+### [▶ Try it live — codelapse.vercel.app](https://codelapse.vercel.app)
 
-<sub>Live demo link goes live once deployed on Vercel.</sub>
+[Architecture](docs/PLAN.md) &nbsp;·&nbsp; [Roadmap](#-roadmap) &nbsp;·&nbsp; [Quick start](#-quick-start)
 
 </div>
 
