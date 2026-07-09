@@ -134,10 +134,11 @@ export function FirstRunTour() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, steps]);
 
-  // During a step, let the user actually USE the highlighted control (it shows
-  // through the spotlight hole): interacting advances the tour, and on the last
-  // step clicking play closes it and runs. A dropdown merely opening does NOT
-  // advance (they're mid-selection); clicking anywhere else shakes the card.
+  // Let the user freely USE the highlighted control (it shows through the
+  // spotlight hole) — switch language, view or speed as many times as they
+  // like. Interacting never advances; only the Next button does. The lone
+  // exception is the last step, whose control IS Play: clicking it finishes
+  // the tour (its own handler runs the code). Clicks anywhere else shake.
   useEffect(() => {
     if (typeof phase !== 'number') return;
     const onClick = (e: MouseEvent) => {
@@ -146,19 +147,15 @@ export function FirstRunTour() {
       if (document.querySelector('.tourPop')?.contains(target)) return; // popover buttons
       const el = document.querySelector(steps[phase]?.selector ?? '');
       if (el && el.contains(target)) {
-        // let the control's own handler run first, then advance — unless a
-        // dropdown menu is now open (still choosing)
-        window.setTimeout(() => {
-          if (document.querySelector('.select__menu')) return;
-          next();
-        }, 90);
+        // last step's control is Play → clicking it ends the tour and, via its
+        // own onClick, starts playback. Other steps: interact freely, no advance.
+        if (phase === steps.length - 1) finish();
       } else {
         bump();
       }
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, steps]);
 
   if (phase === null) return null;
@@ -205,24 +202,40 @@ export function FirstRunTour() {
   if (!step) return null;
   const last = phase === steps.length - 1;
 
-  // Popover placement: above targets in the lower half (the playbar), below
-  // targets in the header; clamped so it can never leave the viewport — with
-  // fallbacks so a zero/degenerate viewport still positions sanely.
+  // Popover placement: prefer a SIDE of the control (right, else left) so a
+  // dropdown that opens directly below it (language / example) is never
+  // covered. Only if neither side has room (narrow / mobile) do we fall back
+  // to below, or above for controls low on the screen. Everything is clamped
+  // so the card can never leave the viewport — with fallbacks so a
+  // zero/degenerate viewport still positions sanely.
   const popWidth = 280;
+  const estHeight = 172; // rough card height, for vertical clamping only
+  const gap = 16;
   const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
   const vh = window.innerHeight || document.documentElement.clientHeight || 800;
   let popStyle: React.CSSProperties = {};
   let clip: string | undefined;
   if (rect) {
-    const above = rect.top > vh * 0.55;
-    // floor at 12 last, so a negative upper bound can never win
-    const left = Math.max(
-      12,
-      Math.min(rect.left + rect.width / 2 - popWidth / 2, vw - popWidth - 12),
-    );
-    popStyle = above
-      ? { left, bottom: Math.max(12, vh - rect.top + 14) }
-      : { left, top: Math.min(rect.bottom + 14, vh - 12) };
+    // vertical anchor: align near the control's top, clamped into view
+    const top = Math.max(12, Math.min(rect.top - 4, vh - estHeight - 12));
+    const roomRight = vw - rect.right;
+    const roomLeft = rect.left;
+    if (roomRight >= popWidth + gap) {
+      popStyle = { left: rect.right + gap, top };
+    } else if (roomLeft >= popWidth + gap) {
+      popStyle = { left: Math.max(12, rect.left - popWidth - gap), top };
+    } else {
+      // no side room — fall back to below (header) / above (playbar), centered
+      const above = rect.top > vh * 0.55;
+      // floor at 12 last, so a negative upper bound can never win
+      const left = Math.max(
+        12,
+        Math.min(rect.left + rect.width / 2 - popWidth / 2, vw - popWidth - 12),
+      );
+      popStyle = above
+        ? { left, bottom: Math.max(12, vh - rect.top + gap) }
+        : { left, top: Math.min(rect.bottom + gap, vh - 12) };
+    }
 
     // Spotlight hole: the scrim blurs/dims everything, this cut-out keeps the
     // highlighted control sharp. A single clip-path ring seamed to the notch.
