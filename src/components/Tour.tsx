@@ -12,7 +12,7 @@ interface TourStep {
 
 const ALL_STEPS: TourStep[] = [
   {
-    selector: '.langPicker',
+    selector: '.langSelect',
     title: 'Pick a language',
     body: 'Python and JavaScript run right in your browser. Java, C and C++ are on the way.',
   },
