@@ -134,6 +134,33 @@ export function FirstRunTour() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, steps]);
 
+  // During a step, let the user actually USE the highlighted control (it shows
+  // through the spotlight hole): interacting advances the tour, and on the last
+  // step clicking play closes it and runs. A dropdown merely opening does NOT
+  // advance (they're mid-selection); clicking anywhere else shakes the card.
+  useEffect(() => {
+    if (typeof phase !== 'number') return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (document.querySelector('.tourPop')?.contains(target)) return; // popover buttons
+      const el = document.querySelector(steps[phase]?.selector ?? '');
+      if (el && el.contains(target)) {
+        // let the control's own handler run first, then advance — unless a
+        // dropdown menu is now open (still choosing)
+        window.setTimeout(() => {
+          if (document.querySelector('.select__menu')) return;
+          next();
+        }, 90);
+      } else {
+        bump();
+      }
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, steps]);
+
   if (phase === null) return null;
 
   if (phase === 'welcome') {
@@ -215,8 +242,14 @@ export function FirstRunTour() {
         aria-hidden="true"
         style={clip ? { clipPath: clip, WebkitClipPath: clip } : undefined}
       />
-      {/* catches every click outside the popover → shake ("finish first") */}
-      <div className="tourCatcher" onClick={bump} />
+      {/* blocks non-highlighted controls; the hole (clip) lets the highlighted
+          control show through and stay clickable. Clicks are routed by the
+          document listener above — advance vs. shake. */}
+      <div
+        className="tourCatcher"
+        aria-hidden="true"
+        style={clip ? { clipPath: clip, WebkitClipPath: clip } : undefined}
+      />
       {rect && (
         <div
           className="tourRing"
