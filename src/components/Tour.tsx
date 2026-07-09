@@ -52,6 +52,10 @@ export function FirstRunTour() {
   const [phase, setPhase] = useState<Phase>(null);
   const [steps, setSteps] = useState<TourStep[]>(ALL_STEPS);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  // When the highlighted control is a dropdown, its open menu pops out below —
+  // we track it so the spotlight hole can uncover it (otherwise the scrim,
+  // which sits above the glass header, blurs and dims the options).
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
   // Chosen once per open — so it differs across browsers/sessions.
   const [fact] = useState(randomFact);
   const primaryRef = useRef<HTMLButtonElement>(null);
@@ -100,16 +104,25 @@ export function FirstRunTour() {
     setPhase(0);
   };
 
-  // Track the current step's target element (and follow it on resize).
+  // Track the current step's target element (and follow it on resize). Also
+  // watch for a dropdown opening/closing inside it — a MutationObserver fires
+  // when the menu mounts/unmounts so the spotlight hole can grow to include it.
   useLayoutEffect(() => {
     if (typeof phase !== 'number') return;
+    const el = document.querySelector(steps[phase]?.selector ?? '');
     const update = () => {
-      const el = document.querySelector(steps[phase]?.selector ?? '');
       setRect(el ? el.getBoundingClientRect() : null);
+      const menu = el?.querySelector('.select__menu');
+      setMenuRect(menu ? menu.getBoundingClientRect() : null);
     };
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    const mo = el ? new MutationObserver(update) : null;
+    mo?.observe(el as Node, { childList: true, subtree: true });
+    return () => {
+      window.removeEventListener('resize', update);
+      mo?.disconnect();
+    };
   }, [phase, steps]);
 
   const next = () => {
@@ -238,12 +251,17 @@ export function FirstRunTour() {
     }
 
     // Spotlight hole: the scrim blurs/dims everything, this cut-out keeps the
-    // highlighted control sharp. A single clip-path ring seamed to the notch.
+    // highlighted control sharp. When a dropdown is open we grow the hole to
+    // its bounding box too, so the popped-out options aren't blurred/dimmed.
     const pad = 8;
-    const L = Math.max(0, rect.left - pad);
-    const T = Math.max(0, rect.top - pad);
-    const R = rect.right + pad;
-    const B = rect.bottom + pad;
+    const hL = menuRect ? Math.min(rect.left, menuRect.left) : rect.left;
+    const hT = menuRect ? Math.min(rect.top, menuRect.top) : rect.top;
+    const hR = menuRect ? Math.max(rect.right, menuRect.right) : rect.right;
+    const hB = menuRect ? Math.max(rect.bottom, menuRect.bottom) : rect.bottom;
+    const L = Math.max(0, hL - pad);
+    const T = Math.max(0, hT - pad);
+    const R = hR + pad;
+    const B = hB + pad;
     clip = `polygon(0px 0px, 0px 100%, ${L}px 100%, ${L}px ${T}px, ${R}px ${T}px, ${R}px ${B}px, ${L}px ${B}px, ${L}px 100%, 100% 100%, 100% 0px)`;
   }
 
