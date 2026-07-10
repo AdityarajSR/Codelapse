@@ -1,24 +1,24 @@
 import { Suspense, lazy, useState } from 'react';
+import type { StageModel } from '../stage/model';
 import { Stage2D } from '../stage/Stage2D';
-import type { Structure } from '../stage/structures';
 import { hasWebGL } from '../stage/webgl';
 import { ErrorBoundary } from './ErrorBoundary';
 
 const Stage3D = lazy(() => import('../stage/Stage3D'));
 
 interface StageProps {
-  /** Already parsed (and carry-forward "sticky") structure from TraceView. */
-  st: Structure | null;
+  /** Identity-threaded (and carry-forward "sticky") model from TraceView. */
+  model: StageModel | null;
 }
 
 /** Host for the data-structure stage: WebGL 3D by default (lazy-loaded), flat
- * 2D fallback, manual toggle. Purely presentational — parsing happens once
- * upstream in TraceView. */
-export function Stage({ st }: StageProps) {
+ * 2D fallback, manual toggle. Purely presentational — parsing and identity
+ * tracking happen once upstream in TraceView. */
+export function Stage({ model }: StageProps) {
   const [webgl] = useState(() => hasWebGL());
   const [mode, setMode] = useState<'3d' | '2d'>(webgl ? '3d' : '2d');
 
-  const hint = st ? `${st.name} · ${st.kind}` : 'lists, stacks & dicts as objects';
+  const hint = model ? `${model.name} · ${model.kind}` : 'lists, stacks & dicts as objects';
   const use3d = webgl && mode === '3d';
 
   return (
@@ -48,13 +48,13 @@ export function Stage({ st }: StageProps) {
       </div>
       <div className={`stage__floor${use3d ? ' stage__floor--3d' : ''}`}>
         {use3d ? (
-          <ErrorBoundary fallback={<Stage2D st={st} />}>
+          <ErrorBoundary fallback={<Stage2D model={model} />}>
             <Suspense fallback={<div className="stage__loading">loading 3D…</div>}>
-              <Stage3D st={st} />
+              <Stage3D model={model} />
             </Suspense>
           </ErrorBoundary>
         ) : (
-          <Stage2D st={st} />
+          <Stage2D model={model} />
         )}
       </div>
     </section>

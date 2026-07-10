@@ -963,6 +963,54 @@ body {
   font-size: 15px;
 }
 
+/* Slot column: the tile glides between slots (FLIP); the index label and the
+ * i/j pointer chips stay bolted to the slot underneath. */
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.cell__idx {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-quiet);
+}
+.cell__ptrs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 15px;
+  line-height: 1.15;
+}
+.cell__ptr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  animation: rise 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+/* In-place overwrite (a[i] = x): the new value flashes bright once. */
+.tile__flash {
+  animation: valueFlash 0.5s ease both;
+}
+@keyframes valueFlash {
+  0% {
+    text-shadow: 0 0 14px rgba(51, 214, 245, 0.95);
+    color: #9df2ff;
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .cell__ptr,
+  .tile__flash {
+    animation: none;
+  }
+}
+
 /* --------------------------------------------------------------- banners -- */
 
 .banner {
