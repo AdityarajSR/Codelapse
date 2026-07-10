@@ -12,7 +12,7 @@ interface TourStep {
 
 const ALL_STEPS: TourStep[] = [
   {
-    selector: '.langPicker',
+    selector: '.langSelect',
     title: 'Pick a language',
     body: 'Python and JavaScript run right in your browser. Java, C and C++ are on the way.',
   },
@@ -52,6 +52,10 @@ export function FirstRunTour() {
   const [phase, setPhase] = useState<Phase>(null);
   const [steps, setSteps] = useState<TourStep[]>(ALL_STEPS);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  // When the highlighted control is a dropdown, its open menu pops out below —
+  // we track it so the spotlight hole can uncover it (otherwise the scrim,
+  // which sits above the glass header, blurs and dims the options).
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
   // Chosen once per open — so it differs across browsers/sessions.
   const [fact] = useState(randomFact);
   const primaryRef = useRef<HTMLButtonElement>(null);
@@ -100,16 +104,25 @@ export function FirstRunTour() {
     setPhase(0);
   };
 
-  // Track the current step's target element (and follow it on resize).
+  // Track the current step's target element (and follow it on resize). Also
+  // watch for a dropdown opening/closing inside it — a MutationObserver fires
+  // when the menu mounts/unmounts so the spotlight hole can grow to include it.
   useLayoutEffect(() => {
     if (typeof phase !== 'number') return;
+    const el = document.querySelector(steps[phase]?.selector ?? '');
     const update = () => {
-      const el = document.querySelector(steps[phase]?.selector ?? '');
       setRect(el ? el.getBoundingClientRect() : null);
+      const menu = el?.querySelector('.select__menu');
+      setMenuRect(menu ? menu.getBoundingClientRect() : null);
     };
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    const mo = el ? new MutationObserver(update) : null;
+    mo?.observe(el as Node, { childList: true, subtree: true });
+    return () => {
+      window.removeEventListener('resize', update);
+      mo?.disconnect();
+    };
   }, [phase, steps]);
 
   const next = () => {
@@ -132,6 +145,30 @@ export function FirstRunTour() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, steps]);
+
+  // Let the user freely USE the highlighted control (it shows through the
+  // spotlight hole) — switch language, view or speed as many times as they
+  // like. Interacting never advances; only the Next button does. The lone
+  // exception is the last step, whose control IS Play: clicking it finishes
+  // the tour (its own handler runs the code). Clicks anywhere else shake.
+  useEffect(() => {
+    if (typeof phase !== 'number') return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (document.querySelector('.tourPop')?.contains(target)) return; // popover buttons
+      const el = document.querySelector(steps[phase]?.selector ?? '');
+      if (el && el.contains(target)) {
+        // last step's control is Play → clicking it ends the tour and, via its
+        // own onClick, starts playback. Other steps: interact freely, no advance.
+        if (phase === steps.length - 1) finish();
+      } else {
+        bump();
+      }
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
   }, [phase, steps]);
 
   if (phase === null) return null;
@@ -178,32 +215,53 @@ export function FirstRunTour() {
   if (!step) return null;
   const last = phase === steps.length - 1;
 
-  // Popover placement: above targets in the lower half (the playbar), below
-  // targets in the header; clamped so it can never leave the viewport — with
-  // fallbacks so a zero/degenerate viewport still positions sanely.
+  // Popover placement: prefer a SIDE of the control (right, else left) so a
+  // dropdown that opens directly below it (language / example) is never
+  // covered. Only if neither side has room (narrow / mobile) do we fall back
+  // to below, or above for controls low on the screen. Everything is clamped
+  // so the card can never leave the viewport — with fallbacks so a
+  // zero/degenerate viewport still positions sanely.
   const popWidth = 280;
+  const estHeight = 172; // rough card height, for vertical clamping only
+  const gap = 16;
   const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
   const vh = window.innerHeight || document.documentElement.clientHeight || 800;
   let popStyle: React.CSSProperties = {};
   let clip: string | undefined;
   if (rect) {
-    const above = rect.top > vh * 0.55;
-    // floor at 12 last, so a negative upper bound can never win
-    const left = Math.max(
-      12,
-      Math.min(rect.left + rect.width / 2 - popWidth / 2, vw - popWidth - 12),
-    );
-    popStyle = above
-      ? { left, bottom: Math.max(12, vh - rect.top + 14) }
-      : { left, top: Math.min(rect.bottom + 14, vh - 12) };
+    // vertical anchor: align near the control's top, clamped into view
+    const top = Math.max(12, Math.min(rect.top - 4, vh - estHeight - 12));
+    const roomRight = vw - rect.right;
+    const roomLeft = rect.left;
+    if (roomRight >= popWidth + gap) {
+      popStyle = { left: rect.right + gap, top };
+    } else if (roomLeft >= popWidth + gap) {
+      popStyle = { left: Math.max(12, rect.left - popWidth - gap), top };
+    } else {
+      // no side room — fall back to below (header) / above (playbar), centered
+      const above = rect.top > vh * 0.55;
+      // floor at 12 last, so a negative upper bound can never win
+      const left = Math.max(
+        12,
+        Math.min(rect.left + rect.width / 2 - popWidth / 2, vw - popWidth - 12),
+      );
+      popStyle = above
+        ? { left, bottom: Math.max(12, vh - rect.top + gap) }
+        : { left, top: Math.min(rect.bottom + gap, vh - 12) };
+    }
 
     // Spotlight hole: the scrim blurs/dims everything, this cut-out keeps the
-    // highlighted control sharp. A single clip-path ring seamed to the notch.
+    // highlighted control sharp. When a dropdown is open we grow the hole to
+    // its bounding box too, so the popped-out options aren't blurred/dimmed.
     const pad = 8;
-    const L = Math.max(0, rect.left - pad);
-    const T = Math.max(0, rect.top - pad);
-    const R = rect.right + pad;
-    const B = rect.bottom + pad;
+    const hL = menuRect ? Math.min(rect.left, menuRect.left) : rect.left;
+    const hT = menuRect ? Math.min(rect.top, menuRect.top) : rect.top;
+    const hR = menuRect ? Math.max(rect.right, menuRect.right) : rect.right;
+    const hB = menuRect ? Math.max(rect.bottom, menuRect.bottom) : rect.bottom;
+    const L = Math.max(0, hL - pad);
+    const T = Math.max(0, hT - pad);
+    const R = hR + pad;
+    const B = hB + pad;
     clip = `polygon(0px 0px, 0px 100%, ${L}px 100%, ${L}px ${T}px, ${R}px ${T}px, ${R}px ${B}px, ${L}px ${B}px, ${L}px 100%, 100% 100%, 100% 0px)`;
   }
 
@@ -215,8 +273,14 @@ export function FirstRunTour() {
         aria-hidden="true"
         style={clip ? { clipPath: clip, WebkitClipPath: clip } : undefined}
       />
-      {/* catches every click outside the popover → shake ("finish first") */}
-      <div className="tourCatcher" onClick={bump} />
+      {/* blocks non-highlighted controls; the hole (clip) lets the highlighted
+          control show through and stay clickable. Clicks are routed by the
+          document listener above — advance vs. shake. */}
+      <div
+        className="tourCatcher"
+        aria-hidden="true"
+        style={clip ? { clipPath: clip, WebkitClipPath: clip } : undefined}
+      />
       {rect && (
         <div
           className="tourRing"
