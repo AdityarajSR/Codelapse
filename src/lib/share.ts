@@ -3,10 +3,12 @@ import type { Language, Trace } from '../types/trace';
 
 /**
  * Hybrid share model (PLAN.md §9.11):
- *  - embed the precomputed TRACE (+ source) when it fits the URL → the viewer
- *    REPLAYS it: safe (no execution) and reproducible;
- *  - otherwise fall back to SOURCE only → the viewer opens behind a press-play
- *    gate and runs it locally in the network-stripped worker (never auto-run).
+ *  - DEFAULT: a short SOURCE link → the viewer opens behind a press-play gate
+ *    and re-runs it locally in the network-stripped worker (never auto-run);
+ *  - OPT-IN ("exact replay" in the share dialog): embed the precomputed TRACE
+ *    (+ source) when it fits the URL → the viewer REPLAYS it without executing
+ *    anything — byte-identical, but a much longer link. Falls back to the
+ *    source link when the run is too large to embed.
  */
 
 const MAX_TRACE_ENCODED = 14000;
@@ -64,8 +66,9 @@ export function buildShareLink(
   trace: Trace | null,
   step: number,
   language: Language = 'python',
+  mode: 'source' | 'trace' = 'source',
 ): ShareLink {
-  if (trace && trace.steps.length) {
+  if (mode === 'trace' && trace && trace.steps.length) {
     const encoded = compressToEncodedURIComponent(JSON.stringify({ src: source, trace }));
     if (encoded.length <= MAX_TRACE_ENCODED) {
       return { url: `${baseUrl()}#t=${encoded}&s=${step}`, mode: 'trace', tooLong: false };

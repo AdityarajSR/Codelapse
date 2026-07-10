@@ -1,4 +1,5 @@
 import { GIFEncoder, applyPalette, quantize } from 'gifenc';
+import { setStageSnap } from '../stage/motion';
 import { usePlayback } from '../state/playbackStore';
 
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -41,6 +42,9 @@ export async function exportStageGif(onProgress?: (p: number) => void): Promise<
   // throughout) and reuse it for every frame — quantize is by far the most
   // expensive gifenc call, so this is a 3-5x export speedup.
   let palette: number[][] | null = null;
+  // Snap stage motion for the capture — we seek step-by-step and read the
+  // canvas two rAFs later, so gliding boxes would be mid-flight in every frame.
+  setStageSnap(true);
   try {
     for (let k = 0; k < indices.length; k++) {
       store.seek(indices[k]);
@@ -59,6 +63,7 @@ export async function exportStageGif(onProgress?: (p: number) => void): Promise<
     gif.finish();
     return new Blob([gif.bytes() as unknown as BlobPart], { type: 'image/gif' });
   } finally {
+    setStageSnap(false);
     store.seek(startIndex);
   }
 }

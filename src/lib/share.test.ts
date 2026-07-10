@@ -45,8 +45,18 @@ describe('share codec', () => {
     });
   });
 
-  it('embeds and round-trips a small trace with its source and step', () => {
+  it('defaults to the short source link even when a trace exists', () => {
     const link = buildShareLink('print("hi")', trace, 0);
+    expect(link.mode).toBe('source');
+    expect(decodeShare(hashOf(link.url))).toEqual({
+      kind: 'source',
+      source: 'print("hi")',
+      language: 'python',
+    });
+  });
+
+  it('embeds and round-trips a small trace when exact replay is requested', () => {
+    const link = buildShareLink('print("hi")', trace, 0, 'python', 'trace');
     expect(link.mode).toBe('trace');
     const decoded = decodeShare(hashOf(link.url));
     expect(decoded?.kind).toBe('trace');

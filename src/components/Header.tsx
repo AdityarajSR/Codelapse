@@ -43,7 +43,11 @@ export function Header({
   onPickExample,
 }: HeaderProps) {
   const busy = phase === 'booting' || phase === 'running';
-  const exampleOptions: SelectOption[] = examples.map((ex) => ({ value: ex.id, label: ex.title }));
+  const exampleOptions: SelectOption[] = examples.map((ex) => ({
+    value: ex.id,
+    label: ex.title,
+    group: ex.group,
+  }));
 
   return (
     <header className="header">
