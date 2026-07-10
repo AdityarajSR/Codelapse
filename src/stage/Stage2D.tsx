@@ -80,8 +80,13 @@ export function Stage2D({ model }: Stage2DProps) {
   if (model.kind === 'dict') {
     return (
       <div className="tiles" ref={rootRef}>
-        {model.els.map((el) => (
-          <div className="tile tile--kv" key={el.id} data-flip-id={el.id}>
+        {model.els.map((el, i) => (
+          <div
+            className="tile tile--kv"
+            key={el.id}
+            data-flip-id={el.id}
+            style={{ animationDelay: `${i * 45}ms` }}
+          >
             <span className="tile__k">{el.keyLabel}</span>
             {/* keyed by value so an in-place overwrite flashes */}
             <span className="tile__v tile__flash" key={el.label}>
@@ -110,6 +115,7 @@ export function Stage2D({ model }: Stage2DProps) {
             className={`tile${i === model.els.length - 1 ? ' tile--head' : ''}`}
             key={el.id}
             data-flip-id={el.id}
+            style={{ animationDelay: `${i * 45}ms` }}
           >
             {/* keyed by value so an in-place overwrite flashes */}
             <span className="tile__flash" key={el.label}>

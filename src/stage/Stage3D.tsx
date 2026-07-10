@@ -1,7 +1,7 @@
 import { ContactShadows, Grid, OrbitControls, RoundedBox, Text } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
-import type { Group } from 'three';
+import type { Group, MeshStandardMaterial } from 'three';
 import type { StageEl, StageModel, StagePointer } from './model';
 import { pointerColor } from './model';
 import { motionDisabled } from './motion';
@@ -24,11 +24,12 @@ const damp = (cur: number, target: number, dt: number, k = 9) =>
   cur + (target - cur) * Math.min(1, dt * k);
 
 /**
- * One element: a rounded box that pops in on mount, pulses when its value
- * changes in place, and GLIDES to its slot when it moves — rising over the
- * row when heading right, sliding in front of it when heading left, so a
- * crossing swap never clips. Under the demand frameloop it requests frames
- * only while animating, then goes idle — light on GPU/battery (PLAN.md §8).
+ * One element: a rounded box that pops in on mount (cascading left→right on a
+ * fresh structure), pulses when its value changes in place, and springs to its
+ * slot when it moves — a true rise-then-fall ARC over the row when heading
+ * right, a forward arc in front of it when heading left, glowing while in
+ * flight. Under the demand frameloop it requests frames only while animating,
+ * then goes idle — light on GPU/battery (PLAN.md §8).
  */
 function Element({
   el,
@@ -42,68 +43,94 @@ function Element({
   head: boolean;
 }) {
   const ref = useRef<Group>(null);
+  const mat = useRef<MeshStandardMaterial>(null);
   const targetX = slotX(slot, count);
-  const pos = useRef({ x: targetX, y: 0.5, z: 0 });
-  const entrance = useRef(0);
-  const pulse = useRef(1);
+  const s = useRef({
+    x: targetX,
+    v: 0, // spring velocity
+    journey: 0, // length of the current hop, for arc shaping
+    dir: 0, // sign of the hop → over the top vs in front
+    entrance: -slot * 0.06, // negative = cascade delay, left to right
+    pulse: 1,
+  });
   const prevLabel = useRef(el.label);
-  const dir = useRef(0); // sign of the current journey, for over/under routing
-  const invalidate = useThree((s) => s.invalidate);
+  const invalidate = useThree((st) => st.invalidate);
 
   // Value changed in place (e.g. an overwrite) → restart the pulse.
   useEffect(() => {
     if (prevLabel.current !== el.label) {
       prevLabel.current = el.label;
-      pulse.current = 0;
+      s.current.pulse = 0;
       invalidate();
     }
   }, [el.label, invalidate]);
 
-  // Slot changed → kick off (or re-route) the glide.
+  // Slot changed → start (or re-route) a hop; the arc restarts from here.
   useEffect(() => {
+    const st = s.current;
+    const d = Math.abs(targetX - st.x);
+    if (d > 0.01) {
+      st.journey = d;
+      st.dir = Math.sign(targetX - st.x);
+    }
     invalidate();
   }, [targetX, invalidate]);
 
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
     if (!ref.current) return;
+    const dt = Math.min(rawDt, 0.05); // clamp so background tabs can't explode the spring
     let busy = false;
-    const p = pos.current;
+    const st = s.current;
+    let y = 0.5;
+    let z = 0;
 
     if (motionDisabled()) {
-      p.x = targetX;
-      p.y = 0.5;
-      p.z = 0;
+      st.x = targetX;
+      st.v = 0;
+      st.journey = 0;
     } else {
-      const dx = targetX - p.x;
-      const dist = Math.abs(dx);
-      if (dist > 0.004) {
-        dir.current = Math.sign(dx);
-        busy = true;
+      // Slightly underdamped spring: overshoots a hair, settles crisply —
+      // livelier than exponential easing and retarget-friendly at 16×.
+      const K = 130; // stiffness
+      const C = 17; // damping (critical would be ~22.8)
+      st.v += ((targetX - st.x) * K - st.v * C) * dt;
+      st.x += st.v * dt;
+      const dist = Math.abs(targetX - st.x);
+      if (dist < 0.003 && Math.abs(st.v) < 0.02) {
+        st.x = targetX;
+        st.v = 0;
+        st.journey = 0;
+        st.dir = 0;
       } else {
-        p.x = targetX;
-        dir.current = 0;
+        busy = true;
       }
-      // Arc height/depth tracks the remaining distance: rises as the journey
-      // starts, melts away on arrival — no progress bookkeeping needed.
-      const liftT = dir.current > 0 ? Math.min(1.05, dist * 0.55) : 0;
-      const frontT = dir.current < 0 ? Math.min(0.85, dist * 0.45) : 0;
-      p.x = damp(p.x, targetX, dt);
-      p.y = damp(p.y, 0.5 + liftT, dt, 10);
-      p.z = damp(p.z, frontT, dt, 10);
-      if (Math.abs(p.y - 0.5) > 0.004 || Math.abs(p.z) > 0.004) busy = true;
+      // True arc: track progress through the hop and rise THEN fall. Height
+      // scales with hop length — long selection-sort flights soar higher.
+      if (st.journey > 0.01) {
+        const p = Math.min(1, Math.max(0, 1 - dist / st.journey));
+        const arc = Math.sin(p * Math.PI);
+        if (st.dir > 0) y = 0.5 + arc * Math.min(1.25, 0.4 + st.journey * 0.2);
+        else z = arc * Math.min(1.0, 0.35 + st.journey * 0.14);
+      }
+      // Glow while flying, cool down on landing.
+      if (mat.current) {
+        const flying = st.journey > 0.01;
+        mat.current.emissiveIntensity +=
+          ((flying ? 1.15 : 0.5) - mat.current.emissiveIntensity) * Math.min(1, dt * 9);
+      }
     }
 
-    if (entrance.current < 1) {
-      entrance.current = Math.min(1, entrance.current + dt / 0.34);
+    if (st.entrance < 1) {
+      st.entrance = Math.min(1, st.entrance + dt / 0.34);
       busy = true;
     }
-    if (pulse.current < 1) {
-      pulse.current = Math.min(1, pulse.current + dt / 0.45);
+    if (st.pulse < 1) {
+      st.pulse = Math.min(1, st.pulse + dt / 0.45);
       busy = true;
     }
-    const e = Math.max(0.001, easeOutBack(entrance.current));
-    const pu = 1 + Math.sin(Math.min(pulse.current, 1) * Math.PI) * 0.16;
-    ref.current.position.set(p.x, p.y, p.z);
+    const e = Math.max(0.001, easeOutBack(Math.max(0, st.entrance)));
+    const pu = 1 + Math.sin(Math.min(st.pulse, 1) * Math.PI) * 0.16;
+    ref.current.position.set(st.x, y, z);
     ref.current.scale.setScalar(e * pu);
     if (busy) invalidate();
   });
@@ -114,6 +141,7 @@ function Element({
     <group ref={ref} position={[targetX, 0.5, 0]} scale={0.001}>
       <RoundedBox args={[1, 1, 1]} radius={0.13} smoothness={3}>
         <meshStandardMaterial
+          ref={mat}
           color={head ? '#33d6f5' : '#8a7cff'}
           emissive={head ? '#0a5f78' : '#3a3184'}
           emissiveIntensity={0.5}
