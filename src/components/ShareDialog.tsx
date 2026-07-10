@@ -22,9 +22,13 @@ export function ShareDialog({ onClose, source, language }: ShareDialogProps) {
     const s = usePlayback.getState();
     return { trace: s.trace, step: s.index };
   });
+  // Short code link by default; "exact replay" embeds the recorded run
+  // (viewer replays without executing) at the cost of a much longer URL.
+  const [exact, setExact] = useState(false);
+  const canExact = !!snap.trace?.steps.length;
   const link = useMemo(
-    () => buildShareLink(source, snap.trace, snap.step, language),
-    [source, snap, language],
+    () => buildShareLink(source, snap.trace, snap.step, language, exact ? 'trace' : 'source'),
+    [source, snap, language, exact],
   );
 
   const [qr, setQr] = useState<string | null>(null);
@@ -54,6 +58,11 @@ export function ShareDialog({ onClose, source, language }: ShareDialogProps) {
       opener?.focus?.();
     };
   }, [onClose]);
+
+  // Toggling modes changes the URL — don't keep claiming "Copied".
+  useEffect(() => {
+    setCopied(false);
+  }, [link.url]);
 
   const copy = async () => {
     try {
@@ -101,8 +110,25 @@ export function ShareDialog({ onClose, source, language }: ShareDialogProps) {
         <p className="dialog__mode">
           {link.mode === 'trace'
             ? '▶ Replayable link — opens to this exact run, nothing re-executes.'
-            : 'Shares your code — it opens behind a “press play” gate and never auto-runs.'}
+            : 'Short link — shares your code; it opens behind a “press play” gate and never auto-runs.'}
         </p>
+
+        <label className="dialog__toggle">
+          <input
+            type="checkbox"
+            checked={exact}
+            disabled={!canExact}
+            onChange={(e) => setExact(e.target.checked)}
+          />
+          <span>
+            Exact replay link <em>(much longer URL — embeds the whole recorded run)</em>
+          </span>
+        </label>
+        {exact && link.mode === 'source' && (
+          <p className="dialog__warn">
+            This run is too large to embed — sharing the short code link instead.
+          </p>
+        )}
 
         <div className="field">
           <input
