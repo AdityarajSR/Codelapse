@@ -155,6 +155,69 @@ describe('buildStageFrames — multiple rows', () => {
   });
 });
 
+describe('buildStageFrames — scalar fallback', () => {
+  it('shows plain variables as boxes when no structures exist', () => {
+    const frames = buildStageFrames(mkTrace([{ lo: int(1), hi: int(100), tries: int(0) }]));
+    const row = row0(frames, 0);
+    expect(row.kind).toBe('scalars');
+    expect(row.els.map((e) => `${e.keyLabel}=${e.label}`)).toEqual(['lo=1', 'hi=100', 'tries=0']);
+    expect(frames[0]!.action).toBe('watching the variables');
+  });
+
+  it('keeps box identity per variable and narrates a value change', () => {
+    const frames = buildStageFrames(
+      mkTrace([
+        { lo: int(1), hi: int(100) },
+        { lo: int(51), hi: int(100) },
+      ]),
+    );
+    expect(row0(frames, 0).els[0].id).toBe(row0(frames, 1).els[0].id); // same box
+    expect(row0(frames, 1).els[0].label).toBe('51');
+    expect(frames[1]!.action).toBe('lo = 51');
+  });
+
+  it('narrates multiple simultaneous changes', () => {
+    const frames = buildStageFrames(
+      mkTrace([
+        { lo: int(1), hi: int(100) },
+        { lo: int(2), hi: int(99) },
+      ]),
+    );
+    expect(frames[1]!.action).toBe('updated 2 values');
+  });
+
+  it('structures win over scalars; sticky structures are not replaced', () => {
+    const frames = buildStageFrames(
+      mkTrace([
+        { a: list([1, 2]), n: int(5) }, // array present → structure row
+        { n: int(5) }, // array gone (returned) → sticky array, NOT scalar row
+      ]),
+    );
+    expect(row0(frames, 0).kind).toBe('array');
+    expect(row0(frames, 1).kind).toBe('array'); // sticky wins
+  });
+
+  it('caps the scalar row and excludes non-scalars', () => {
+    const frames = buildStageFrames(
+      mkTrace([
+        {
+          a: int(1),
+          b: int(2),
+          c: int(3),
+          d: int(4),
+          e: int(5),
+          f: int(6),
+          g: int(7),
+          mod: snap('<module>', 'object', 'module'),
+        },
+      ]),
+    );
+    const row = row0(frames, 0);
+    expect(row.els).toHaveLength(6);
+    expect(row.els.some((e) => e.keyLabel === 'mod')).toBe(false);
+  });
+});
+
 describe('buildStageFrames — index pointers', () => {
   it('shows int locals that index into the primary structure', () => {
     const frames = buildStageFrames(mkTrace([{ a: list([9, 8, 7]), i: int(0), j: int(2) }]));

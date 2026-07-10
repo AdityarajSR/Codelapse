@@ -91,7 +91,9 @@ export function Stage2D({ frame }: Stage2DProps) {
 }
 
 function Row({ row }: { row: StageModel }) {
-  if (row.kind === 'dict') {
+  // Dicts and the scalar fallback share the key-over-value tile: the key (or
+  // variable name) rides above, the value flashes when overwritten.
+  if (row.kind === 'dict' || row.kind === 'scalars') {
     return (
       <div className="tiles">
         {row.els.map((el, i) => (

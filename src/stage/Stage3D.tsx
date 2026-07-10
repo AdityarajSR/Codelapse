@@ -283,7 +283,14 @@ function Row3D({ row, rowZ, showTag }: { row: StageModel; rowZ: number; showTag:
   return (
     <group>
       {row.els.map((el, i) => (
-        <Element key={el.id} el={el} slot={i} count={n} head={i === n - 1} rowZ={rowZ} />
+        <Element
+          key={el.id}
+          el={el}
+          slot={i}
+          count={n}
+          head={row.kind !== 'scalars' && i === n - 1}
+          rowZ={rowZ}
+        />
       ))}
       {showIdx &&
         row.els.map((_, i) => (

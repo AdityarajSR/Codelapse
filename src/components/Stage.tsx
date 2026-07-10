@@ -20,7 +20,9 @@ export function Stage({ frame }: StageProps) {
   const [mode, setMode] = useState<'3d' | '2d'>(webgl ? '3d' : '2d');
 
   const hint = frame?.rows.length
-    ? frame.rows.map((r) => `${r.name} · ${r.kind}`).join('  +  ')
+    ? frame.rows
+        .map((r) => (r.kind === 'scalars' ? 'variables · live' : `${r.name} · ${r.kind}`))
+        .join('  +  ')
     : 'lists, stacks & dicts as objects';
   const use3d = webgl && mode === '3d';
   const pointers = frame?.rows[0]?.pointers ?? [];
