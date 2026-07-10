@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { changedVars } from '../lib/traceModel';
-import { buildStageModels } from '../stage/model';
+import { buildStageFrames } from '../stage/model';
 import { usePlayback } from '../state/playbackStore';
 import type { Step, VarSnapshot } from '../types/trace';
 import { CallStackPanel } from './CallStackPanel';
@@ -59,13 +59,13 @@ export function TraceView({ pendingShare, workerError }: TraceViewProps) {
   const changed = useMemo(() => changedVars(previous, current), [previous, current]);
   const stdout = useCumulativeStdout(steps, index);
 
-  // Sticky stage models: each step shows the most recent structure seen up to
-  // that point (so 3D objects survive a function return), with element
+  // Sticky stage frames: each step shows up to two structures at once (so a
+  // second string or a companion dict gets stage time too), with element
   // IDENTITY threaded across steps so the stages can animate moves and swaps.
   // Precomputed once per trace — deterministic under scrubbing, and playback
   // ticks stop paying for parsing/diffing entirely.
-  const modelByStep = useMemo(() => buildStageModels(trace), [trace]);
-  const model = modelByStep[index] ?? null;
+  const frameByStep = useMemo(() => buildStageFrames(trace), [trace]);
+  const frame = frameByStep[index] ?? null;
 
   return (
     <div className="col col--right">
@@ -76,7 +76,7 @@ export function TraceView({ pendingShare, workerError }: TraceViewProps) {
         </div>
       )}
       <StatusBanner trace={trace} workerError={workerError} />
-      <Stage model={model} />
+      <Stage frame={frame} />
       <div className="panels">
         <VariablesPanel
           locals={current?.locals ?? EMPTY_LOCALS}

@@ -2,7 +2,7 @@ import { ContactShadows, Grid, OrbitControls, RoundedBox, Text } from '@react-th
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import type { Group, MeshStandardMaterial } from 'three';
-import type { StageEl, StageModel, StagePointer } from './model';
+import type { StageEl, StageFrame, StageModel, StagePointer } from './model';
 import { pointerColor } from './model';
 import { motionDisabled } from './motion';
 // Bundled woff (troika reads ttf/otf/woff, not woff2) — labels render IN the
@@ -36,11 +36,13 @@ function Element({
   slot,
   count,
   head,
+  rowZ,
 }: {
   el: StageEl;
   slot: number;
   count: number;
   head: boolean;
+  rowZ: number;
 }) {
   const ref = useRef<Group>(null);
   const mat = useRef<MeshStandardMaterial>(null);
@@ -130,7 +132,7 @@ function Element({
     }
     const e = Math.max(0.001, easeOutBack(Math.max(0, st.entrance)));
     const pu = 1 + Math.sin(Math.min(st.pulse, 1) * Math.PI) * 0.16;
-    ref.current.position.set(st.x, y, z);
+    ref.current.position.set(st.x, y, rowZ + z);
     ref.current.scale.setScalar(e * pu);
     if (busy) invalidate();
   });
@@ -138,7 +140,7 @@ function Element({
   const labelSize = el.label.length > 5 ? 0.24 : 0.34;
 
   return (
-    <group ref={ref} position={[targetX, 0.5, 0]} scale={0.001}>
+    <group ref={ref} position={[targetX, 0.5, rowZ]} scale={0.001}>
       <RoundedBox args={[1, 1, 1]} radius={0.13} smoothness={3}>
         <meshStandardMaterial
           ref={mat}
@@ -183,7 +185,17 @@ function Element({
 /** A colored cone + name hovering ABOVE its cell, apex pointing down — the
  * classic `i`/`j` loop-pointer. Glides along the row as the loop advances;
  * two pointers on the same cell stack upward in lanes. */
-function Pointer3D({ ptr, count, lane }: { ptr: StagePointer; count: number; lane: number }) {
+function Pointer3D({
+  ptr,
+  count,
+  lane,
+  rowZ,
+}: {
+  ptr: StagePointer;
+  count: number;
+  lane: number;
+  rowZ: number;
+}) {
   const ref = useRef<Group>(null);
   const targetX = slotX(ptr.index, count);
   const x = useRef(targetX);
@@ -211,7 +223,7 @@ function Pointer3D({ ptr, count, lane }: { ptr: StagePointer; count: number; lan
       entrance.current = Math.min(1, entrance.current + dt / 0.3);
       busy = true;
     }
-    ref.current.position.set(x.current, y, 0);
+    ref.current.position.set(x.current, y, rowZ);
     ref.current.scale.setScalar(Math.max(0.001, easeOutBack(entrance.current)));
     if (busy) invalidate();
   });
@@ -221,7 +233,7 @@ function Pointer3D({ ptr, count, lane }: { ptr: StagePointer; count: number; lan
   const beamLen = Math.max(0.12, y - 0.21 - 1.08);
 
   return (
-    <group ref={ref} position={[targetX, y, 0]} scale={0.001}>
+    <group ref={ref} position={[targetX, y, rowZ]} scale={0.001}>
       <mesh rotation={[Math.PI, 0, 0]} position={[0, -0.08, 0]}>
         <coneGeometry args={[0.12, 0.26, 4]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} />
@@ -255,28 +267,26 @@ function Pointer3D({ ptr, count, lane }: { ptr: StagePointer; count: number; lan
   );
 }
 
-function Structure3D({ model }: { model: StageModel }) {
-  const n = model.els.length;
-  const showIdx = model.kind === 'array' || model.kind === 'string';
+function Row3D({ row, rowZ, showTag }: { row: StageModel; rowZ: number; showTag: boolean }) {
+  const n = row.els.length;
+  const showIdx = row.kind === 'array' || row.kind === 'string';
   // Pointers on the same index stack into lanes so they never overlap.
   const lanes = new Map<string, number>();
   {
     const seen = new Map<number, number>();
-    for (const p of model.pointers) {
+    for (const p of row.pointers) {
       const lane = seen.get(p.index) ?? 0;
       lanes.set(p.name, lane);
       seen.set(p.index, lane + 1);
     }
   }
-  // Key the group by structure name so switching variables remounts with a
-  // fresh entrance; elements are keyed by IDENTITY so moves animate.
   return (
-    <group key={model.name}>
-      {model.els.map((el, i) => (
-        <Element key={el.id} el={el} slot={i} count={n} head={i === n - 1} />
+    <group>
+      {row.els.map((el, i) => (
+        <Element key={el.id} el={el} slot={i} count={n} head={i === n - 1} rowZ={rowZ} />
       ))}
       {showIdx &&
-        model.els.map((_, i) => (
+        row.els.map((_, i) => (
           <Text
             key={`idx${i}`}
             font={monoFont}
@@ -284,23 +294,39 @@ function Structure3D({ model }: { model: StageModel }) {
             color="#8b8ca8"
             anchorX="center"
             anchorY="middle"
-            position={[slotX(i, n), 0.08, 0.42]}
+            position={[slotX(i, n), 0.08, rowZ + 0.42]}
           >
             {String(i)}
           </Text>
         ))}
-      {model.pointers.map((p) => (
-        <Pointer3D key={p.name} ptr={p} count={n} lane={lanes.get(p.name) ?? 0} />
+      {/* the variable's name at the row's left end, so two rows never blur
+          together ("which boxes are `seen`?") */}
+      {showTag && (
+        <Text
+          font={monoFont}
+          fontSize={0.26}
+          color="#a3a4c0"
+          outlineWidth={0.012}
+          outlineColor="#07070c"
+          anchorX="right"
+          anchorY="middle"
+          position={[slotX(0, n) - 0.95, 0.5, rowZ]}
+        >
+          {row.name}
+        </Text>
+      )}
+      {row.pointers.map((p) => (
+        <Pointer3D key={p.name} ptr={p} count={n} lane={lanes.get(p.name) ?? 0} rowZ={rowZ} />
       ))}
     </group>
   );
 }
 
 interface Stage3DProps {
-  model: StageModel | null;
+  frame: StageFrame | null;
 }
 
-export default function Stage3D({ model }: Stage3DProps) {
+export default function Stage3D({ frame }: Stage3DProps) {
   return (
     <div className="stage3d">
       <Canvas
@@ -334,7 +360,17 @@ export default function Stage3D({ model }: Stage3DProps) {
           far={3.4}
           resolution={256}
         />
-        {model && <Structure3D model={model} />}
+        {frame?.rows.map((row, r) => (
+          // Two rows sit at different depths: primary in front, companion
+          // behind. Keyed by variable name so switching variables remounts
+          // with a fresh entrance; elements inside are keyed by IDENTITY.
+          <Row3D
+            key={row.name}
+            row={row}
+            rowZ={frame.rows.length > 1 ? (r === 0 ? 0.85 : -1.55) : 0}
+            showTag={frame.rows.length > 1}
+          />
+        ))}
         <OrbitControls
           enablePan={false}
           enableZoom={false}

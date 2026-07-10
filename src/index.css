@@ -974,6 +974,30 @@ body {
 }
 
 /* 2D tiles */
+/* Up to two structures share the stage, stacked as tagged rows. */
+.stageRows {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  width: 100%;
+}
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stageRow__tag {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #a3a4c0;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(13, 13, 24, 0.55);
+}
+
 .tiles {
   display: flex;
   gap: 10px;

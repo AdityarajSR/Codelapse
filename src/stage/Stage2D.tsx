@@ -1,20 +1,21 @@
 import { useLayoutEffect, useRef } from 'react';
-import type { StageModel } from './model';
+import type { StageFrame, StageModel } from './model';
 import { pointerColor } from './model';
 import { motionDisabled } from './motion';
 
 interface Stage2DProps {
-  model: StageModel | null;
+  frame: StageFrame | null;
 }
 
 /**
- * Flat fallback (and the "2D" toggle) for the data-structure stage. The row is
- * a line of FIXED slot columns (index labels and `i`/`j` pointer chips stay
- * bolted to the slot); the value tiles inside are keyed by element IDENTITY
- * and slide between slots via FLIP (WAAPI) when the algorithm moves them —
- * with a little arc so a swap reads as two tiles hopping over each other.
+ * Flat fallback (and the "2D" toggle) for the data-structure stage. Each row
+ * is one structure (tagged with its variable name); a row is a line of FIXED
+ * slot columns (index labels and `i`/`j` pointer chips stay bolted to the
+ * slot) while the value tiles inside are keyed by element IDENTITY and slide
+ * between slots via FLIP (WAAPI) — with a little arc so a swap reads as two
+ * tiles hopping over each other.
  */
-export function Stage2D({ model }: Stage2DProps) {
+export function Stage2D({ frame }: Stage2DProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   // Last known layout rect per element id, measured after every render.
   const rects = useRef(new Map<string, DOMRect>());
@@ -68,7 +69,7 @@ export function Stage2D({ model }: Stage2DProps) {
     rects.current = next;
   });
 
-  if (!model) {
+  if (!frame || frame.rows.length === 0) {
     return (
       <div className="stage__placeholder">
         <span className="stage__cube" aria-hidden="true" />
@@ -77,10 +78,23 @@ export function Stage2D({ model }: Stage2DProps) {
     );
   }
 
-  if (model.kind === 'dict') {
+  return (
+    <div className="stageRows" ref={rootRef}>
+      {frame.rows.map((row) => (
+        <div className="stageRow" key={row.name}>
+          {frame.rows.length > 1 && <span className="stageRow__tag">{row.name}</span>}
+          <Row row={row} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Row({ row }: { row: StageModel }) {
+  if (row.kind === 'dict') {
     return (
-      <div className="tiles" ref={rootRef}>
-        {model.els.map((el, i) => (
+      <div className="tiles">
+        {row.els.map((el, i) => (
           <div
             className="tile tile--kv"
             key={el.id}
@@ -98,21 +112,21 @@ export function Stage2D({ model }: Stage2DProps) {
     );
   }
 
-  const showIdx = model.kind === 'array' || model.kind === 'string';
-  const byIndex = new Map<number, typeof model.pointers>();
-  for (const p of model.pointers) {
+  const showIdx = row.kind === 'array' || row.kind === 'string';
+  const byIndex = new Map<number, typeof row.pointers>();
+  for (const p of row.pointers) {
     const list = byIndex.get(p.index) ?? [];
     list.push(p);
     byIndex.set(p.index, list);
   }
-  const hasPointers = model.pointers.length > 0;
+  const hasPointers = row.pointers.length > 0;
 
   return (
-    <div className="tiles" ref={rootRef}>
-      {model.els.map((el, i) => (
+    <div className="tiles">
+      {row.els.map((el, i) => (
         <div className="cell" key={i}>
           <div
-            className={`tile${i === model.els.length - 1 ? ' tile--head' : ''}`}
+            className={`tile${i === row.els.length - 1 ? ' tile--head' : ''}`}
             key={el.id}
             data-flip-id={el.id}
             style={{ animationDelay: `${i * 45}ms` }}
