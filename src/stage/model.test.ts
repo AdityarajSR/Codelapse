@@ -150,3 +150,55 @@ describe('buildStageModels — index pointers', () => {
     expect(models[0]!.pointers).toEqual([]);
   });
 });
+
+describe('buildStageModels — action narrator', () => {
+  const actions = (localsPerStep: Record<string, VarSnapshot>[]) =>
+    buildStageModels(mkTrace(localsPerStep)).map((m) => m?.action ?? null);
+
+  it('introduces the structure on first sight', () => {
+    expect(actions([{ a: list([1, 2, 3]) }])).toEqual(['watching a (3 items)']);
+  });
+
+  it('narrates a swap', () => {
+    expect(actions([{ a: list([5, 2, 8]) }, { a: list([2, 5, 8]) }])[1]).toBe(
+      'swapped a[0] ⇄ a[1]',
+    );
+  });
+
+  it('narrates an in-place write', () => {
+    expect(actions([{ a: list([5, 2]) }, { a: list([5, 7]) }])[1]).toBe('a[1] = 7');
+  });
+
+  it('narrates append, insert, pop and remove', () => {
+    expect(actions([{ a: list([1, 2]) }, { a: list([1, 2, 9]) }])[1]).toBe('appended 9');
+    expect(actions([{ a: list([1, 2]) }, { a: list([1, 7, 2]) }])[1]).toBe('inserted 7 at a[1]');
+    expect(actions([{ a: list([1, 2, 3]) }, { a: list([1, 2]) }])[1]).toBe('popped 3');
+    expect(actions([{ a: list([1, 2, 3]) }, { a: list([2, 3]) }])[1]).toBe('removed a[0]');
+  });
+
+  it('stays sticky through quiet steps and carried structures', () => {
+    const acts = actions([
+      { a: list([5, 2]) },
+      { a: list([2, 5]) },
+      { a: list([2, 5]) }, // quiet step — keep narrating the swap
+      { n: int(1) }, // structure carried — still keep it
+    ]);
+    expect(acts[1]).toBe('swapped a[0] ⇄ a[1]');
+    expect(acts[2]).toBe('swapped a[0] ⇄ a[1]');
+    expect(acts[3]).toBe('swapped a[0] ⇄ a[1]');
+  });
+
+  it('narrates dict adds, value changes and removals', () => {
+    const d = (repr: string) => snap(repr, 'dict', 'dict');
+    expect(actions([{ d: d("{'x': 1}") }, { d: d("{'x': 1, 'y': 2}") }])[1]).toBe("added 'y': 2");
+    expect(actions([{ d: d("{'x': 1}") }, { d: d("{'x': 5}") }])[1]).toBe("d['x'] = 5");
+    expect(actions([{ d: d("{'x': 1, 'y': 2}") }, { d: d("{'x': 1}") }])[1]).toBe("removed 'y'");
+  });
+
+  it('narrates set adds and string changes', () => {
+    const s = (repr: string) => snap(repr, 'set', 'set');
+    expect(actions([{ s: s('{1, 2}') }, { s: s('{1, 2, 3}') }])[1]).toBe('added 3');
+    const str = (repr: string) => snap(repr, 'string', 'str');
+    expect(actions([{ w: str("'hi'") }, { w: str("'hip'") }])[1]).toBe('w = "hip"');
+  });
+});

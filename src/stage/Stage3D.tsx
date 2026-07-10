@@ -188,12 +188,28 @@ function Pointer3D({ ptr, count, lane }: { ptr: StagePointer; count: number; lan
     if (busy) invalidate();
   });
 
+  // The beam reaches from under the cone down to just above the box top
+  // (world y ≈ 1.05), so the marker visibly POINTS at its cell.
+  const beamLen = Math.max(0.12, y - 0.21 - 1.08);
+
   return (
     <group ref={ref} position={[targetX, y, 0]} scale={0.001}>
       <mesh rotation={[Math.PI, 0, 0]} position={[0, -0.08, 0]}>
         <coneGeometry args={[0.12, 0.26, 4]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} />
       </mesh>
+      <mesh position={[0, -0.21 - beamLen / 2, 0]}>
+        <cylinderGeometry args={[0.014, 0.014, beamLen, 6]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.5}
+          transparent
+          opacity={0.55}
+        />
+      </mesh>
+      {/* name = value, so the marker reads as "variable i is 2 right now,
+          which is this cell" */}
       <Text
         font={monoFont}
         fontSize={0.21}
@@ -202,10 +218,10 @@ function Pointer3D({ ptr, count, lane }: { ptr: StagePointer; count: number; lan
         outlineColor="#07070c"
         anchorX="center"
         anchorY="middle"
-        position={[0, 0.24, 0]}
+        position={[0, 0.26, 0]}
         onSync={() => invalidate()}
       >
-        {ptr.name}
+        {`${ptr.name} = ${ptr.index}`}
       </Text>
     </group>
   );

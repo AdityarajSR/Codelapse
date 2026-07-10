@@ -858,12 +858,82 @@ body {
   box-shadow: inset 0 -2px 0 var(--accent-2);
 }
 .stage__floor {
+  position: relative;
   min-height: 132px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 20px 20px 34px;
   perspective: 700px;
+}
+
+/* Narrator chip: one line of code-speak describing the latest change
+ * ("swapped a[1] ⇄ a[2]"). Pops on every new event. */
+.stage__caption {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  max-width: 60%;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #d6e6ff;
+  background: rgba(13, 13, 24, 0.72);
+  border: 1px solid rgba(138, 124, 255, 0.35);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  animation: captionPop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+@keyframes captionPop {
+  from {
+    transform: translateY(6px) scale(0.94);
+    opacity: 0;
+  }
+}
+
+/* Legend: live pointer values + what the ▲ markers mean. */
+.stage__legend {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 38%;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(13, 13, 24, 0.62);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.stage__legendNote {
+  font-weight: 400;
+  color: var(--text-quiet);
+}
+.stage__legendNote strong {
+  color: var(--text-muted);
+}
+@media (max-width: 900px) {
+  .stage__legendNote {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage__caption {
+    animation: none;
+  }
 }
 .stage__floor--3d {
   padding: 0;

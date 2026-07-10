@@ -1,5 +1,6 @@
 import { Suspense, lazy, useState } from 'react';
 import type { StageModel } from '../stage/model';
+import { pointerColor } from '../stage/model';
 import { Stage2D } from '../stage/Stage2D';
 import { hasWebGL } from '../stage/webgl';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -55,6 +56,26 @@ export function Stage({ model }: StageProps) {
           </ErrorBoundary>
         ) : (
           <Stage2D model={model} />
+        )}
+        {/* Narrator: what just happened, in code-speak. Keyed by text so each
+            new event replays the pop-in. aria-live reads it to screen readers. */}
+        {model?.action && (
+          <div className="stage__caption" role="status" aria-live="polite" key={model.action}>
+            {model.action}
+          </div>
+        )}
+        {/* Legend: what the ▲ markers mean, with each pointer's live value. */}
+        {model && model.pointers.length > 0 && (
+          <div className="stage__legend" aria-hidden="true">
+            {model.pointers.map((p) => (
+              <span key={p.name} style={{ color: pointerColor(p.name) }}>
+                ▲ {p.name}={p.index}
+              </span>
+            ))}
+            <span className="stage__legendNote">
+              — each ▲ marks the position that variable points to in <strong>{model.name}</strong>
+            </span>
+          </div>
         )}
       </div>
     </section>

@@ -121,7 +121,7 @@ export function Stage2D({ model }: Stage2DProps) {
             <span className="cell__ptrs">
               {(byIndex.get(i) ?? []).map((p) => (
                 <span className="cell__ptr" key={p.name} style={{ color: pointerColor(p.name) }}>
-                  ▲{p.name}
+                  ▲ {p.name}={p.index}
                 </span>
               ))}
             </span>
