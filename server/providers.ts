@@ -90,9 +90,98 @@ export function selectProvider(env: ProviderEnv): Provider | null {
         return anthropic(keys.anthropic, clean(env.ANTHROPIC_MODEL) || DEFAULT_MODELS.anthropic);
     }
   };
-  const available = order.filter((p) => keys[p]).map(make);
-  if (available.length === 0) return null;
-  return available.length === 1 ? available[0] : withBackups(available);
+  const ids = order.filter((p) => keys[p]);
+  if (ids.length === 0) return null;
+  // Free providers race each other (fastest answer wins); the paid one
+  // (Claude) never races — it only steps in if every free one fails.
+  const free = ids.filter((p) => p !== 'anthropic').map(make);
+  const paid = ids.includes('anthropic') ? make('anthropic') : null;
+  const front = free.length > 1 ? raceProviders(free) : free[0];
+  if (!front) return paid;
+  return paid ? withBackups([front, paid]) : front;
+}
+
+/** Errors that another provider can't fix (bad key) are worth surfacing. */
+const isRetryable = (err: unknown) => (err instanceof ProviderError ? err.retryable : true);
+
+/**
+ * Ask every provider at once; whichever starts answering first wins and the
+ * others are stopped immediately. If the winner then fails mid-answer, the
+ * remaining providers take over one by one (the partial text is replaced).
+ */
+export function raceProviders(providers: Provider[]): Provider {
+  return {
+    id: providers[0].id,
+    model: providers.map((p) => `${p.id}/${p.model}`).join(' | '),
+    async *generate(args) {
+      const ctrls = providers.map(() => new AbortController());
+      const stopAll = () => ctrls.forEach((c) => c.abort());
+      args.signal.addEventListener('abort', stopAll);
+      const gens = providers.map((p, i) => p.generate({ ...args, signal: ctrls[i].signal }));
+
+      // Each contender runs until its first real piece of text.
+      const firstText = async (i: number) => {
+        for (;;) {
+          const r = await gens[i].next();
+          if (r.done) throw new ProviderError("The assistant couldn't answer that.", true);
+          if (r.value !== STREAM_RESET_MARK) return { i, text: r.value };
+        }
+      };
+      const pending = new Map<number, Promise<{ i: number; text: string }>>();
+      providers.forEach((_, i) => {
+        const p = firstText(i);
+        p.catch(() => {}); // a stopped loser rejecting later is expected
+        pending.set(i, p);
+      });
+
+      let winner: { i: number; text: string } | null = null;
+      let lastErr: unknown = null;
+      try {
+        while (!winner && pending.size > 0) {
+          const settled = await Promise.race(
+            [...pending.entries()].map(([i, p]) =>
+              p.then(
+                (v) => ({ ok: true as const, i, v }),
+                (e: unknown) => ({ ok: false as const, i, e }),
+              ),
+            ),
+          );
+          if (settled.ok) winner = settled.v;
+          else {
+            pending.delete(settled.i);
+            // keep a "bad key" style error over a quota one, so it surfaces
+            if (!lastErr || isRetryable(lastErr)) lastErr = settled.e;
+          }
+        }
+      } finally {
+        // stop everyone who didn't win (all of them if nobody did)
+        providers.forEach((_, i) => {
+          if (winner?.i !== i) {
+            ctrls[i].abort();
+            void gens[i].return(undefined).catch(() => {});
+          }
+        });
+      }
+
+      try {
+        if (!winner) throw lastErr ?? new ProviderError('No AI provider answered.', true);
+        if (args.signal.aborted) return;
+        console.info(`[assistant] ${providers[winner.i].id} answered first`);
+        yield winner.text;
+        try {
+          for await (const t of { [Symbol.asyncIterator]: () => gens[winner!.i] }) yield t;
+        } catch (err) {
+          // the winner broke off mid-answer: the others take over, in order
+          const rest = providers.filter((_, i) => i !== winner!.i);
+          if (args.signal.aborted || !isRetryable(err) || rest.length === 0) throw err;
+          yield STREAM_RESET_MARK;
+          yield* withBackups(rest).generate(args);
+        }
+      } finally {
+        args.signal.removeEventListener('abort', stopAll);
+      }
+    },
+  };
 }
 
 /**

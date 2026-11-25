@@ -8,6 +8,7 @@ import {
   markExhausted,
   orderGeminiChain,
   ProviderError,
+  raceProviders,
   selectProvider,
   withBackups,
   type Provider,
@@ -27,12 +28,13 @@ describe('selectProvider', () => {
     expect(p?.model).toBe(DEFAULT_MODELS.gemini);
   });
 
-  it('puts Gemini first and the other keys behind it as backups', () => {
+  it('races the free providers; the paid one is only a last-resort backup', () => {
     const p = selectProvider({ GEMINI_API_KEY: 'g', GROQ_API_KEY: 'q', ANTHROPIC_API_KEY: 'a' });
-    expect(p?.id).toBe('gemini');
     expect(p?.model).toBe(
-      `gemini/${DEFAULT_MODELS.gemini} > groq/${DEFAULT_MODELS.groq} > anthropic/${DEFAULT_MODELS.anthropic}`,
+      `gemini/gemini/${DEFAULT_MODELS.gemini} | groq/${DEFAULT_MODELS.groq} > anthropic/${DEFAULT_MODELS.anthropic}`,
     );
+    const free = selectProvider({ GEMINI_API_KEY: 'g', GROQ_API_KEY: 'q' });
+    expect(free?.model).toBe(`gemini/${DEFAULT_MODELS.gemini} | groq/${DEFAULT_MODELS.groq}`);
   });
 
   it('falls back to Groq, then Anthropic', () => {
@@ -158,5 +160,114 @@ describe('withBackups', () => {
       }),
     ]);
     await expect(collect(p)).rejects.toThrow('groq quota');
+  });
+});
+
+describe('raceProviders', () => {
+  const wait = (ms: number, signal: AbortSignal) =>
+    new Promise<void>((resolve, reject) => {
+      const t = setTimeout(resolve, ms);
+      signal.addEventListener('abort', () => {
+        clearTimeout(t);
+        reject(new Error('aborted'));
+      });
+    });
+  const args = () => ({
+    system: 's',
+    messages: [],
+    effort: 'low' as const,
+    signal: new AbortController().signal,
+  });
+  const collect = async (p: Provider) => {
+    const out: string[] = [];
+    for await (const t of p.generate(args())) out.push(t);
+    return out;
+  };
+
+  it('lets the fastest provider answer and stops the other', async () => {
+    let slowStopped = false;
+    const slow: Provider = {
+      id: 'gemini',
+      model: 'slow',
+      async *generate({ signal }) {
+        signal.addEventListener('abort', () => (slowStopped = true));
+        await wait(200, signal);
+        yield 'slow answer';
+      },
+    };
+    const fast: Provider = {
+      id: 'groq',
+      model: 'fast',
+      async *generate({ signal }) {
+        await wait(10, signal);
+        yield 'fast ';
+        yield 'answer';
+      },
+    };
+    expect(await collect(raceProviders([slow, fast]))).toEqual(['fast ', 'answer']);
+    expect(slowStopped).toBe(true);
+  });
+
+  it('ignores a provider that fails when another one answers', async () => {
+    const broken: Provider = {
+      id: 'gemini',
+      model: 'x',
+      async *generate() {
+        throw new ProviderError('quota', true);
+      },
+    };
+    const ok: Provider = {
+      id: 'groq',
+      model: 'y',
+      async *generate({ signal }) {
+        await wait(20, signal);
+        yield 'answer';
+      },
+    };
+    expect(await collect(raceProviders([broken, ok]))).toEqual(['answer']);
+  });
+
+  it('surfaces a bad key when nobody answers', async () => {
+    const badKey: Provider = {
+      id: 'gemini',
+      model: 'x',
+      async *generate() {
+        throw new ProviderError('bad key', false);
+      },
+    };
+    const quota: Provider = {
+      id: 'groq',
+      model: 'y',
+      async *generate() {
+        throw new ProviderError('quota', true);
+      },
+    };
+    await expect(collect(raceProviders([badKey, quota]))).rejects.toThrow('bad key');
+  });
+
+  it('hands over to the other provider if the winner breaks mid-answer', async () => {
+    let calls = 0;
+    const flaky: Provider = {
+      id: 'groq',
+      model: 'flaky',
+      async *generate() {
+        yield 'half';
+        throw new ProviderError('overloaded', true);
+      },
+    };
+    const steady: Provider = {
+      id: 'gemini',
+      model: 'steady',
+      async *generate({ signal }) {
+        calls++;
+        await wait(calls === 1 ? 200 : 5, signal); // slow in the race, quick as backup
+        yield 'whole answer';
+      },
+    };
+    expect(await collect(raceProviders([steady, flaky]))).toEqual([
+      'half',
+      STREAM_RESET_MARK,
+      'whole answer',
+    ]);
   });
 });
