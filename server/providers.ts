@@ -34,7 +34,23 @@ export interface GenerateArgs {
 }
 
 /** Thrown for problems the student should see as a friendly sentence. */
-export class ProviderError extends Error {}
+export class ProviderError extends Error {
+  constructor(
+    message: string,
+    /** out of quota / overloaded — worth trying another provider */
+    readonly retryable = false,
+  ) {
+    super(message);
+  }
+}
+
+/** An API error from any provider, as a student-friendly ProviderError. */
+function apiError(status: number | undefined, provider: string): ProviderError {
+  return new ProviderError(
+    statusMessage(status, provider),
+    status === 429 || (status !== undefined && status >= 500),
+  );
+}
 
 export interface Provider {
   id: ProviderId;
@@ -64,17 +80,51 @@ export function selectProvider(env: ProviderEnv): Provider | null {
     forced === 'gemini' || forced === 'groq' || forced === 'anthropic'
       ? [forced]
       : ['gemini', 'groq', 'anthropic'];
-  const id = order.find((p) => keys[p]);
-  if (!id) return null;
+  const make = (id: ProviderId): Provider => {
+    switch (id) {
+      case 'gemini':
+        return gemini(keys.gemini, clean(env.GEMINI_MODEL) || DEFAULT_MODELS.gemini);
+      case 'groq':
+        return groq(keys.groq, clean(env.GROQ_MODEL) || DEFAULT_MODELS.groq);
+      case 'anthropic':
+        return anthropic(keys.anthropic, clean(env.ANTHROPIC_MODEL) || DEFAULT_MODELS.anthropic);
+    }
+  };
+  const available = order.filter((p) => keys[p]).map(make);
+  if (available.length === 0) return null;
+  return available.length === 1 ? available[0] : withBackups(available);
+}
 
-  switch (id) {
-    case 'gemini':
-      return gemini(keys.gemini, clean(env.GEMINI_MODEL) || DEFAULT_MODELS.gemini);
-    case 'groq':
-      return groq(keys.groq, clean(env.GROQ_MODEL) || DEFAULT_MODELS.groq);
-    case 'anthropic':
-      return anthropic(keys.anthropic, clean(env.ANTHROPIC_MODEL) || DEFAULT_MODELS.anthropic);
-  }
+/**
+ * Every configured provider, in order: when one is out of quota or failing
+ * (even mid-answer), the next one answers instead. With GEMINI_API_KEY and
+ * GROQ_API_KEY both set, Groq backs Gemini up.
+ */
+export function withBackups(providers: Provider[]): Provider {
+  return {
+    id: providers[0].id,
+    model: providers.map((p) => `${p.id}/${p.model}`).join(' → '),
+    async *generate(args) {
+      for (let i = 0; i < providers.length; i++) {
+        let any = false;
+        try {
+          for await (const text of providers[i].generate(args)) {
+            if (text !== STREAM_RESET_MARK) any = true;
+            yield text;
+          }
+          return;
+        } catch (err) {
+          if (args.signal.aborted) throw err;
+          // bad key / bad request won't be fixed by another provider… but a
+          // quota, overload or network failure will
+          const worthRetry = err instanceof ProviderError ? err.retryable : true;
+          if (!worthRetry || i === providers.length - 1) throw err;
+          console.warn(`[assistant] ${providers[i].id} failed, trying ${providers[i + 1].id}`);
+          if (any) yield STREAM_RESET_MARK; // drop the half-finished answer
+        }
+      }
+    },
+  };
 }
 
 /* -------------------------------------------------------------- shared -- */
@@ -193,7 +243,7 @@ function gemini(apiKey: string, model: string): Provider {
             }
             // Google reports a bad key as 400 INVALID_ARGUMENT, not 401.
             const badKey = /API[_ ]KEY/i.test(err.message);
-            throw new ProviderError(statusMessage(badKey ? 401 : err.status, 'Gemini'));
+            throw apiError(badKey ? 401 : err.status, 'Gemini');
           }
           throw err;
         }
@@ -209,12 +259,14 @@ function groq(apiKey: string, model: string): Provider {
   return {
     id: 'groq',
     model,
-    async *generate({ system, messages, signal }) {
+    async *generate({ system, messages, effort, signal }) {
       try {
         const stream = await client.chat.completions.create(
           {
             model,
             max_completion_tokens: MAX_OUTPUT_TOKENS,
+            // reasoning models (gpt-oss): think briefly — quick answers matter more
+            reasoning_effort: effort === 'low' ? 'low' : 'medium',
             stream: true,
             messages: [
               { role: 'system', content: system },
@@ -230,7 +282,7 @@ function groq(apiKey: string, model: string): Provider {
       } catch (err) {
         if (signal.aborted) throw err;
         if (err instanceof Groq.APIError) {
-          throw new ProviderError(statusMessage(err.status, 'Groq'));
+          throw apiError(err.status, 'Groq');
         }
         throw err;
       }
@@ -280,7 +332,7 @@ function anthropic(apiKey: string, model: string): Provider {
       } catch (err) {
         if (err instanceof ProviderError || signal.aborted) throw err;
         if (err instanceof Anthropic.APIError) {
-          throw new ProviderError(statusMessage(err.status, 'Anthropic'));
+          throw apiError(err.status, 'Anthropic');
         }
         throw err;
       }
