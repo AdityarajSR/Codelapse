@@ -7,9 +7,9 @@
  * code + a small run snapshot; we validate it, build the prompt, and stream
  * plain text back from whichever provider is configured (server/providers.ts).
  */
-import { parseAssistantRequest, STREAM_ERROR_MARK } from '../src/assistant/protocol';
-import { buildPrompt, effortFor } from '../src/assistant/prompt';
-import { ProviderError, selectProvider, type ProviderEnv } from './providers';
+import { parseAssistantRequest, STREAM_ERROR_MARK } from '../src/assistant/protocol.js';
+import { buildPrompt, effortFor } from '../src/assistant/prompt.js';
+import { ProviderError, selectProvider, type ProviderEnv } from './providers.js';
 
 export type AssistantEnv = ProviderEnv;
 

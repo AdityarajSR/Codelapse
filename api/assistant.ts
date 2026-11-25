@@ -4,7 +4,7 @@
  * Vercel project's environment variables. See server/providers.ts for the
  * other supported providers.
  */
-import { handleAssistant } from '../server/assistant';
+import { handleAssistant } from '../server/assistant.js';
 
 export const config = { maxDuration: 60 };
 
