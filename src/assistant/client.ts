@@ -2,6 +2,47 @@ import { STREAM_ERROR_MARK, STREAM_RESET_MARK, type AssistantRequest } from './p
 
 export class AssistantError extends Error {}
 
+/** Waits before each automatic retry of a request that couldn't connect. */
+export const CONNECT_RETRY_DELAYS_MS = [600, 1500];
+
+const sleep = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const t = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => {
+      clearTimeout(t);
+      resolve();
+    });
+  });
+
+/**
+ * Send the question. A request that fails before any reply (server
+ * restarting, a dropped connection, a stale keep-alive socket) never reached
+ * the AI, so it is safe to quietly try again a couple of times.
+ */
+async function connect(req: AssistantRequest, signal: AbortSignal): Promise<Response> {
+  const body = JSON.stringify(req);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+        signal,
+      });
+    } catch (err) {
+      if (signal.aborted) throw err;
+      const wait = CONNECT_RETRY_DELAYS_MS[attempt];
+      if (wait === undefined) {
+        throw new AssistantError(
+          "Couldn't reach the assistant. Check your internet connection, then press Retry.",
+        );
+      }
+      await sleep(wait, signal);
+      if (signal.aborted) throw err;
+    }
+  }
+}
+
 /**
  * POST a question to /api/assistant and stream the answer. `onText` receives
  * the full answer-so-far each time new text arrives. Resolves when the answer
@@ -12,18 +53,7 @@ export async function streamAssistant(
   onText: (answerSoFar: string) => void,
   signal: AbortSignal,
 ): Promise<string> {
-  let res: Response;
-  try {
-    res = await fetch('/api/assistant', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(req),
-      signal,
-    });
-  } catch (err) {
-    if (signal.aborted) throw err;
-    throw new AssistantError('Could not reach the assistant. Check your connection.');
-  }
+  const res = await connect(req, signal);
 
   if (!res.ok) {
     let message = `The assistant is unavailable (${res.status}).`;

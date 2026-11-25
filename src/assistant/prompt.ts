@@ -26,7 +26,7 @@ Ground rules:
 const MODE_INSTRUCTIONS: Record<AssistantMode, string> = {
   ask: 'Answer the student question below about this program.',
   explain:
-    'Explain what this program does as a whole: its goal, the main idea of how it gets there, and what it prints. Open with one plain sentence that sums it up (no label or heading like \"Summary\"), then a short walkthrough of the key parts. Mention the purpose of the important variables and functions.',
+    'Explain what this program does as a whole: its goal, the main idea of how it gets there, and what it prints. Open with one plain sentence that sums it up (no label or heading like “Summary”), then a short walkthrough of the key parts. Mention the purpose of the important variables and functions.',
   'line-by-line':
     'Explain this program line by line for a beginner. Go through the lines in order as a list, one item per meaningful line (group trivial lines such as closing braces or blank lines). For each, say what it does in plain words, and use a concrete value from this run where it helps. Mention why loops repeat and what each function call returns.',
   step: 'Explain the current execution step in depth: which line is about to run and what it will do, what the previous line just did (why each changed variable changed, using the old and new values), what the call stack means right now, and if the program just jumped back to a loop header or skipped a block, why. End with a one-line prediction of what happens next.',

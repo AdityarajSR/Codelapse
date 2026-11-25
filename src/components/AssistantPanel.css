@@ -775,3 +775,13 @@
     background: none;
   }
 }
+
+/* Retry on failed / stopped answers */
+.chip--retry {
+  margin-top: 8px;
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--border));
+}
+.lisa__status .chip--retry {
+  margin-top: 0;
+}

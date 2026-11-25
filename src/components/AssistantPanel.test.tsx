@@ -141,3 +141,64 @@ describe('stream reset', () => {
     expect(screen.queryByText(/counts from 0 up/)).toBeNull();
   });
 });
+
+describe('connection problems', () => {
+  const okStream = (text: string) =>
+    new Response(
+      new ReadableStream({
+        start(c) {
+          c.enqueue(new TextEncoder().encode(text));
+          c.close();
+        },
+      }),
+      { status: 200 },
+    );
+
+  it('quietly retries a request that could not connect', async () => {
+    loadTrace(0);
+    let calls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        calls++;
+        if (calls === 1) throw new TypeError('Failed to fetch'); // e.g. server restarting
+        return okStream('Answer after a hiccup.');
+      }),
+    );
+    render(<AssistantPanel code={CODE} language="javascript" />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Ask AI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'What does this code do?' }));
+    expect(
+      await screen.findByText('Answer after a hiccup.', {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
+    expect(calls).toBe(2);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('offers Retry when it still fails, and Retry asks again', async () => {
+    loadTrace(0);
+    let online = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        if (!online) throw new TypeError('Failed to fetch');
+        return okStream('Back online answer.');
+      }),
+    );
+    render(<AssistantPanel code={CODE} language="javascript" />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Ask AI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'What does this code do?' }));
+    expect(await screen.findByRole('alert', {}, { timeout: 5000 })).toHaveTextContent(
+      "Couldn't reach the assistant",
+    );
+    online = true;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Back online answer.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+    // the failed attempt was replaced, not duplicated
+    expect(screen.getAllByText('What does this code do?').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('listitem').filter((li) => li.className.includes('msg--user')),
+    ).toHaveLength(1);
+  }, 10000);
+});

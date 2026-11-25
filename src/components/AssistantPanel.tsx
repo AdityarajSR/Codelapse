@@ -370,6 +370,30 @@ function ChatTab({
   );
 }
 
+function RetryButton({ id }: { id: number }) {
+  const busy = useAssistant((s) => s.busy);
+  return (
+    <button
+      type="button"
+      className="chip chip--retry"
+      disabled={busy}
+      onClick={() => useAssistant.getState().retry(id)}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      Retry
+    </button>
+  );
+}
+
 const MessageList = memo(function MessageList({ messages }: { messages: ChatMessage[] }) {
   return (
     <ol className="chat__messages">
@@ -390,6 +414,7 @@ const MessageList = memo(function MessageList({ messages }: { messages: ChatMess
                   {m.error}
                 </p>
               )}
+              {m.canRetry && <RetryButton id={m.id} />}
               {!m.pending && m.content && (
                 <div className="msg__tools">
                   <ReadAloud text={m.content} label="Read this answer aloud" />

@@ -60,6 +60,7 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const [lastAsk, setLastAsk] = useState<{ raw: string; voice: boolean } | null>(null);
   const speakAnswers = useAssistant((s) => s.speakAnswers);
   const setSpeakAnswers = useAssistant((s) => s.setSpeakAnswers);
   const speaking = useSpeaking();
@@ -132,6 +133,7 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
   const handle = (raw: string, voice = false) => {
     const intent = parseIntent(raw);
     setInput('');
+    setLastAsk({ raw, voice });
     switch (intent.kind) {
       case 'empty':
         return;
@@ -273,6 +275,15 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
           {status.kind === 'error' && (
             <div className="lisa__status lisa__status--err" role="alert">
               <span>{status.text}</span>
+              {lastAsk && (
+                <button
+                  type="button"
+                  className="chip chip--retry"
+                  onClick={() => handle(lastAsk.raw, lastAsk.voice)}
+                >
+                  Retry
+                </button>
+              )}
               <button type="button" className="chip" onClick={() => setStatus({ kind: 'idle' })}>
                 OK
               </button>

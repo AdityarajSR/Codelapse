@@ -23,6 +23,8 @@ export interface ChatMessage {
   /** 'write' = Lisa / the chat is writing a program (different loading words) */
   kind?: 'write';
   error?: string;
+  /** failed or stopped — show a Retry button */
+  canRetry?: boolean;
 }
 
 export type CodeSink = (code: string, language: Language) => void;
@@ -64,6 +66,8 @@ interface AssistantState {
   setCodeSink: (sink: CodeSink | null) => void;
   /** record a finished exchange (e.g. Lisa wrote code) so follow-ups have context */
   addExchange: (question: string, answer: string) => void;
+  /** ask a failed or stopped question again (by its answer's id) */
+  retry: (botId: number) => void;
   stop: () => void;
   clear: () => void;
 }
@@ -98,6 +102,8 @@ function store(key: string, value: string) {
 let controller: AbortController | null = null;
 let nextId = 0;
 let codeSink: CodeSink | null = null;
+/** How to re-ask each failed/stopped answer, by its message id. */
+const retryFns = new Map<number, () => Promise<unknown>>();
 
 export const useAssistant = create<AssistantState>((set, get) => ({
   tab: readTab(),
@@ -160,17 +166,24 @@ export const useAssistant = create<AssistantState>((set, get) => ({
       patch({ content: answer, pending: false });
       if (opts.speakAnswer || get().speakAnswers) speak(answer);
     } catch (err) {
+      retryFns.set(botId, () => get().ask(mode, typed, opts));
       if (own.signal.aborted) {
         set((s) => ({
           messages: s.messages.map((m) =>
             m.id === botId
-              ? { ...m, pending: false, content: m.content ? `${m.content}\n\n_(stopped)_` : '' }
+              ? {
+                  ...m,
+                  pending: false,
+                  canRetry: true,
+                  content: m.content ? `${m.content}\n\n_(stopped)_` : '_(stopped)_',
+                }
               : m,
           ),
         }));
       } else {
         patch({
           pending: false,
+          canRetry: true,
           error: err instanceof AssistantError ? err.message : 'Something went wrong.',
         });
       }
@@ -234,8 +247,10 @@ export const useAssistant = create<AssistantState>((set, get) => ({
         : err instanceof AssistantError
           ? err.message
           : 'Something went wrong.';
+      retryFns.set(botId, () => get().write(request, language, opts));
       patch({
         pending: false,
+        canRetry: true,
         error: aborted ? undefined : error,
         content: aborted ? '_(stopped)_' : '',
       });
@@ -256,9 +271,19 @@ export const useAssistant = create<AssistantState>((set, get) => ({
       ],
     })),
 
+  retry: (botId) => {
+    const again = retryFns.get(botId);
+    if (!again || controller) return;
+    retryFns.delete(botId);
+    // drop the failed exchange (question + answer), then ask it again
+    set((s) => ({ messages: s.messages.filter((m) => m.id !== botId && m.id !== botId - 1) }));
+    void again();
+  },
+
   stop: () => controller?.abort(),
   clear: () => {
     controller?.abort();
+    retryFns.clear();
     set({ messages: [] });
   },
 }));
