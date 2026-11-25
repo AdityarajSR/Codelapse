@@ -111,3 +111,33 @@ describe('AssistantPanel', () => {
     expect(screen.getByText('Why is total 6?')).toBeInTheDocument();
   });
 });
+
+describe('stream reset', () => {
+  it('replaces a half-finished answer when the server retries', async () => {
+    loadTrace(0);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            new ReadableStream({
+              start(c) {
+                const enc = new TextEncoder();
+                c.enqueue(enc.encode('This program counts from 0 up'));
+                c.enqueue(enc.encode('\u0000RES'));
+                c.enqueue(enc.encode('ET\u0000'));
+                c.enqueue(enc.encode('A fresh, complete answer.'));
+                c.close();
+              },
+            }),
+            { status: 200 },
+          ),
+      ),
+    );
+    render(<AssistantPanel code={CODE} language="javascript" />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Ask AI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'What does this code do?' }));
+    await waitFor(() => expect(screen.getByText('A fresh, complete answer.')).toBeInTheDocument());
+    expect(screen.queryByText(/counts from 0 up/)).toBeNull();
+  });
+});

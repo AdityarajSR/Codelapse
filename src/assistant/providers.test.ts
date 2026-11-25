@@ -2,7 +2,12 @@
 // Server code — the provider SDKs refuse to construct in a browser-like env.
 import { describe, expect, it } from 'vitest';
 import { handleAssistant } from '../../server/assistant';
-import { DEFAULT_MODELS, selectProvider } from '../../server/providers';
+import {
+  DEFAULT_MODELS,
+  markExhausted,
+  orderGeminiChain,
+  selectProvider,
+} from '../../server/providers';
 
 describe('selectProvider', () => {
   it('returns null when no key is configured', () => {
@@ -57,5 +62,19 @@ describe('handleAssistant', () => {
     expect(get.status).toBe(405);
     const bad = await handleAssistant(post({ mode: 'nope' }), { GEMINI_API_KEY: 'g' }, 'test');
     expect(bad.status).toBe(400);
+  });
+});
+
+describe('Gemini quota cooldown', () => {
+  it('skips models that recently ran out of quota, but never skips all', () => {
+    const chain = ['m-a', 'm-b', 'm-c'];
+    const now = 1_000_000;
+    expect(orderGeminiChain(chain, now)).toEqual(chain);
+    markExhausted('m-a', now);
+    expect(orderGeminiChain(chain, now + 1000)).toEqual(['m-b', 'm-c']);
+    markExhausted('m-b', now);
+    markExhausted('m-c', now);
+    expect(orderGeminiChain(chain, now + 1000)).toEqual(chain); // all cooling → try all
+    expect(orderGeminiChain(chain, now + 11 * 60 * 1000)).toEqual(chain); // cooled down
   });
 });

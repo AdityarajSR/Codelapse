@@ -10,7 +10,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ApiError as GeminiApiError, GoogleGenAI, ThinkingLevel } from '@google/genai';
 import Groq from 'groq-sdk';
-import type { ChatTurn } from '../src/assistant/protocol';
+import { STREAM_RESET_MARK, type ChatTurn } from '../src/assistant/protocol.js';
 
 export type ProviderId = 'gemini' | 'groq' | 'anthropic';
 
@@ -106,13 +106,41 @@ export const GEMINI_FALLBACKS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
 /** Busy/quota errors worth retrying on another model. */
 const retryable = (status: number) => status === 429 || status === 503 || status === 500;
 
+/**
+ * Models that recently said "quota used up" are skipped for a while instead
+ * of being tried (and failing) on every question — faster answers, and fewer
+ * wasted calls. Per server instance; resets when it restarts.
+ */
+const QUOTA_COOLDOWN_MS = 10 * 60 * 1000;
+const exhaustedUntil = new Map<string, number>();
+
+export function orderGeminiChain(chain: string[], now = Date.now()): string[] {
+  const fresh = chain.filter((m) => (exhaustedUntil.get(m) ?? 0) <= now);
+  // if every model is cooling down, still try them all (quotas may have reset)
+  return fresh.length > 0 ? fresh : chain;
+}
+export function markExhausted(model: string, now = Date.now()) {
+  exhaustedUntil.set(model, now + QUOTA_COOLDOWN_MS);
+}
+
+const pause = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const t = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => {
+      clearTimeout(t);
+      resolve();
+    });
+  });
+
 function gemini(apiKey: string, model: string): Provider {
   const client = new GoogleGenAI({ apiKey });
-  const chain = [model, ...GEMINI_FALLBACKS.filter((m) => m !== model)];
+  const fullChain = [model, ...GEMINI_FALLBACKS.filter((m) => m !== model)];
   return {
     id: 'gemini',
     model,
     async *generate({ system, messages, effort, signal }) {
+      const chain = orderGeminiChain(fullChain);
+      let retriedBusy = false;
       for (let i = 0; i < chain.length; i++) {
         let any = false;
         try {
@@ -146,8 +174,23 @@ function gemini(apiKey: string, model: string): Provider {
         } catch (err) {
           if (err instanceof ProviderError || signal.aborted) throw err;
           if (err instanceof GeminiApiError) {
-            // Busy before any text arrived → quietly try the next model.
-            if (!any && retryable(err.status) && i < chain.length - 1) continue;
+            if (err.status === 429) markExhausted(chain[i]);
+            if (retryable(err.status)) {
+              const hasNext = i < chain.length - 1;
+              // the last model was only briefly overloaded → one more try
+              const retrySame = !hasNext && err.status !== 429 && !retriedBusy;
+              if (hasNext || retrySame) {
+                // Failed mid-answer: tell the app to drop the partial text.
+                if (any) yield STREAM_RESET_MARK;
+                if (retrySame) {
+                  retriedBusy = true;
+                  await pause(900, signal);
+                  if (signal.aborted) throw err;
+                  i--;
+                }
+                continue;
+              }
+            }
             // Google reports a bad key as 400 INVALID_ARGUMENT, not 401.
             const badKey = /API[_ ]KEY/i.test(err.message);
             throw new ProviderError(statusMessage(badKey ? 401 : err.status, 'Gemini'));

@@ -80,6 +80,9 @@ export interface AssistantRequest {
 
 /** Marks an error inside an already-started text stream. */
 export const STREAM_ERROR_MARK = '\u0000ERR:';
+/** "Discard what you've shown so far — a fresh answer follows" (the server
+ * retried after the AI failed mid-answer). */
+export const STREAM_RESET_MARK = '\u0000RESET\u0000';
 
 /* ------------------------------------------------------------- limits -- */
 

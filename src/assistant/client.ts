@@ -1,4 +1,4 @@
-import { STREAM_ERROR_MARK, type AssistantRequest } from './protocol';
+import { STREAM_ERROR_MARK, STREAM_RESET_MARK, type AssistantRequest } from './protocol';
 
 export class AssistantError extends Error {}
 
@@ -46,14 +46,19 @@ export async function streamAssistant(
     const { done, value } = await reader.read();
     if (done) break;
     text += decoder.decode(value, { stream: true });
+    // The server retried after the AI failed mid-answer: start over.
+    const reset = text.lastIndexOf(STREAM_RESET_MARK);
+    if (reset !== -1) text = text.slice(reset + STREAM_RESET_MARK.length);
     const mark = text.indexOf(STREAM_ERROR_MARK);
     if (mark !== -1) {
       const partial = text.slice(0, mark);
       if (partial) onText(partial);
       throw new AssistantError(text.slice(mark + STREAM_ERROR_MARK.length) || 'Unknown error.');
     }
-    onText(text);
+    // never show half of a control marker split across network chunks
+    const nul = text.indexOf('\u0000');
+    onText(nul === -1 ? text : text.slice(0, nul));
   }
   text += decoder.decode();
-  return text;
+  return text.split('\u0000').join('');
 }
