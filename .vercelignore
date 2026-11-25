@@ -1,0 +1,8 @@
+# Never upload local secrets or build junk when deploying from this folder.
+# (The API key is set in Vercel's Environment Variables instead.)
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
