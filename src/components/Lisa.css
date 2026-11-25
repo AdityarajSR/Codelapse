@@ -358,3 +358,34 @@
     order: 7;
   }
 }
+
+/* ------------------------------------------------------ tutorial button -- */
+
+.btn--tour {
+  padding: 8px 13px 8px 9px;
+}
+.btn--tour__q {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-2);
+}
+/* phones: icon only, in the second header row */
+@media (max-width: 900px) {
+  .header > .btn--tour {
+    order: 7;
+    padding: 8px 9px;
+  }
+  .btn--tour .btn__label {
+    display: none;
+  }
+}
+.lisa__foot a {
+  color: var(--text-quiet);
+}

@@ -82,11 +82,33 @@ const ALL_STEPS: TourStep[] = [
 
 type Phase = 'welcome' | number | null;
 
+/** Offered automatically on the first few visits per device (browser). The
+ * Tutorial button in the top bar replays it anytime. */
+const MAX_AUTO_SHOWS = 3;
+const SHOWN_KEY = 'codelapse.tour.shown';
+
 function remember(value: string) {
   try {
     localStorage.setItem(KEY, value);
   } catch {
     /* storage blocked — they'll just see it again */
+  }
+}
+
+// React's dev StrictMode mounts twice — count each page load only once.
+let countedThisLoad = false;
+
+/** Should the welcome open by itself on this page load? Counts the show. */
+function takeAutoShow(): boolean {
+  try {
+    if (countedThisLoad) return true;
+    const n = Number(localStorage.getItem(SHOWN_KEY)) || 0;
+    if (n >= MAX_AUTO_SHOWS) return false;
+    localStorage.setItem(SHOWN_KEY, String(n + 1));
+    countedThisLoad = true;
+    return true;
+  } catch {
+    return false; // storage blocked — don't show on every load
   }
 }
 
@@ -121,11 +143,7 @@ export function FirstRunTour() {
   };
 
   useEffect(() => {
-    try {
-      if (!localStorage.getItem(KEY)) setPhase('welcome');
-    } catch {
-      /* storage blocked — don't show */
-    }
+    if (takeAutoShow()) setPhase('welcome');
   }, []);
 
   useEffect(() => {
@@ -288,7 +306,9 @@ export function FirstRunTour() {
               Skip — I'll explore
             </button>
           </div>
-          <p className="tourHint">You can replay it anytime — ask Lisa to “start the tutorial”.</p>
+          <p className="tourHint">
+            You can replay it anytime with the <strong>Tutorial</strong> button at the top.
+          </p>
         </div>
       </div>
     );

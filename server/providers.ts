@@ -8,7 +8,7 @@
  *   anthropic — Claude (paid API)                             ANTHROPIC_API_KEY
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { ApiError as GeminiApiError, GoogleGenAI } from '@google/genai';
+import { ApiError as GeminiApiError, GoogleGenAI, ThinkingLevel } from '@google/genai';
 import Groq from 'groq-sdk';
 import type { ChatTurn } from '../src/assistant/protocol';
 
@@ -112,7 +112,7 @@ function gemini(apiKey: string, model: string): Provider {
   return {
     id: 'gemini',
     model,
-    async *generate({ system, messages, signal }) {
+    async *generate({ system, messages, effort, signal }) {
       for (let i = 0; i < chain.length; i++) {
         let any = false;
         try {
@@ -125,6 +125,12 @@ function gemini(apiKey: string, model: string): Provider {
             config: {
               systemInstruction: system,
               maxOutputTokens: MAX_OUTPUT_TOKENS,
+              // Flash models "think" silently before writing — that's most of
+              // the wait. Explanations need almost none; bugs, complexity and
+              // writing code get a little.
+              thinkingConfig: {
+                thinkingLevel: effort === 'low' ? ThinkingLevel.MINIMAL : ThinkingLevel.LOW,
+              },
               abortSignal: signal,
             },
           });

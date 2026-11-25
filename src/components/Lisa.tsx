@@ -293,7 +293,10 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
 
           <p className="lisa__foot">
             Voice: “next step”, “play”, “run it”, “start the tutorial”. Ctrl+K opens Lisa · Esc
-            stops speaking.
+            stops speaking ·{' '}
+            <a href="/legal.html" target="_blank" rel="noopener noreferrer">
+              Terms &amp; privacy
+            </a>
           </p>
         </div>
       )}

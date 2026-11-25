@@ -2104,11 +2104,17 @@ body.is-resizing-y {
   .brand__name {
     display: none;
   }
+}
+@media (max-width: 480px) {
   .btn--share {
     padding: 9px 11px;
   }
+  /* no room on small phones — the Legal link lives in Lisa's panel instead */
   .header__legal {
-    padding: 6px 2px;
+    display: none;
+  }
+  .langSelect .select__trigger {
+    padding: 6px 10px;
   }
   .playbar__line {
     display: none;

@@ -97,6 +97,19 @@ export function Header({
         Legal
       </a>
 
+      <button
+        type="button"
+        className="btn btn--ghost btn--tour"
+        onClick={() => window.dispatchEvent(new Event('codelapse:tour'))}
+        title="Show the tutorial"
+        aria-label="Tutorial"
+      >
+        <span className="btn--tour__q" aria-hidden="true">
+          ?
+        </span>
+        <span className="btn__label">Tutorial</span>
+      </button>
+
       {lisa}
       <MuteButton />
 
