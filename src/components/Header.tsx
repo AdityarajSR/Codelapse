@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react';
 import type { RunPhase } from '../runtime/useRunner';
 import type { Example } from '../examples';
 import type { Language } from '../types/trace';
 import { BrandMark, PlayIcon, ShareIcon } from './Icons';
+import { MuteButton } from './MuteButton';
 import { NavFact } from './NavFact';
 import { Select, type SelectOption } from './Select';
 
@@ -14,6 +16,8 @@ interface HeaderProps {
   examples: Example[];
   currentExampleId: string;
   onPickExample: (id: string) => void;
+  /** the header assistant (Lisa) */
+  lisa?: ReactNode;
 }
 
 const runLabel: Record<RunPhase, string> = {
@@ -41,6 +45,7 @@ export function Header({
   examples,
   currentExampleId,
   onPickExample,
+  lisa,
 }: HeaderProps) {
   const busy = phase === 'booting' || phase === 'running';
   const exampleOptions: SelectOption[] = examples.map((ex) => ({
@@ -82,7 +87,7 @@ export function Header({
 
       <span
         className="badge"
-        title="Your code runs in your browser via WebAssembly — nothing is uploaded."
+        title="Your code runs in your browser via WebAssembly. It is only sent to a server when you ask the AI assistant a question."
       >
         <span className="badge__dot" aria-hidden="true" />
         runs in your browser
@@ -92,15 +97,21 @@ export function Header({
         Legal
       </a>
 
-      <button className="btn btn--ghost" onClick={onShare}>
+      {lisa}
+      <MuteButton />
+
+      <button className="btn btn--ghost btn--share" onClick={onShare} aria-label="Share">
         <ShareIcon />
-        Share
+        <span className="btn__label">Share</span>
       </button>
 
       <button className="btn btn--run" onClick={onRun} disabled={busy} aria-busy={busy}>
         {busy ? <span className="spinner" aria-hidden="true" /> : <PlayIcon size={14} />}
-        {runLabel[phase]}
+        <span className="btn__label">{runLabel[phase]}</span>
       </button>
+
+      {/* narrow screens: forces the second header row (see index.css) */}
+      <span className="header__break" aria-hidden="true" />
     </header>
   );
 }

@@ -1,9 +1,13 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { AssistantPanel } from './components/AssistantPanel';
 import { EditorCard } from './components/EditorCard';
 import { Header } from './components/Header';
+import { Lisa } from './components/Lisa';
+import { MobileNav, type MobileView } from './components/MobileNav';
 import { PlaybackBar } from './components/PlaybackBar';
 import { FirstRunTour } from './components/Tour';
 import { TraceView } from './components/TraceView';
+import { Workspace } from './components/Workspace';
 import { defaultExampleFor, examplesFor } from './examples';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { decodeShare } from './lib/share';
@@ -16,6 +20,9 @@ import type { Language } from './types/trace';
 const ShareDialog = lazy(() =>
   import('./components/ShareDialog').then((m) => ({ default: m.ShareDialog })),
 );
+
+/** Keep in sync with the narrow-screen breakpoint in index.css. */
+const MOBILE_QUERY = '(max-width: 900px)';
 
 export default function App() {
   useKeyboardShortcuts();
@@ -62,9 +69,13 @@ export default function App() {
   // Note: nothing auto-plays. The default example's trace loads so every panel
   // has content, but playback waits for the user (see FirstRunTour).
 
+  const [mobileView, setMobileView] = useState<MobileView>('code');
+
   const onRun = () => {
     setPendingShare(false);
     run(code, language);
+    // On narrow screens, jump straight to the visualization after Run.
+    if (window.matchMedia(MOBILE_QUERY).matches) setMobileView('visual');
   };
 
   const onPickLanguage = (lang: Language) => {
@@ -88,8 +99,26 @@ export default function App() {
     setPendingShare(false);
   };
 
+  // Lisa wrote a program (or Undo restored one): show it and run it.
+  const onUseCode = (next: string, lang: Language) => {
+    setLanguage(lang);
+    setCode(next);
+    setTrace(null);
+    setPendingShare(false);
+    run(next, lang);
+    if (window.matchMedia(MOBILE_QUERY).matches) setMobileView('code');
+  };
+
+  const onShowAssistant = () => {
+    if (window.matchMedia(MOBILE_QUERY).matches) setMobileView('assistant');
+  };
+
   return (
     <div className="app">
+      {/* first thing a keyboard / screen-reader user reaches */}
+      <a className="skipLink" href="#main">
+        Skip to main content
+      </a>
       <div className="aurora" aria-hidden="true">
         <span className="aurora__blob aurora__blob--1" />
         <span className="aurora__blob aurora__blob--2" />
@@ -105,14 +134,25 @@ export default function App() {
         examples={examplesFor(language)}
         currentExampleId={exampleId}
         onPickExample={onPickExample}
+        lisa={
+          <Lisa
+            code={code}
+            language={language}
+            onUseCode={onUseCode}
+            onRun={onRun}
+            onShowAssistant={onShowAssistant}
+          />
+        }
       />
 
-      <main className="workspace">
-        <div className="col col--editor">
-          <EditorCard code={code} onChange={setCode} language={language} />
-        </div>
-        <TraceView pendingShare={pendingShare} workerError={error} />
-      </main>
+      <MobileNav view={mobileView} onChange={setMobileView} />
+
+      <Workspace
+        mobileView={mobileView}
+        editor={<EditorCard code={code} onChange={setCode} language={language} />}
+        assistant={<AssistantPanel code={code} language={language} />}
+        right={<TraceView code={code} pendingShare={pendingShare} workerError={error} />}
+      />
 
       <PlaybackBar />
 

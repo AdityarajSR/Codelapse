@@ -1,0 +1,360 @@
+/* ------------------------------------------------------------------ Lisa --
+   The header assistant (Lisa.tsx) and the shared mic button (MicButton.tsx). */
+
+.lisa {
+  position: relative;
+}
+.lisa__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 13px 5px 5px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.lisa__trigger:hover,
+.lisa__trigger.is-open {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.lisa__avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--grad);
+  color: #0a0a12;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 0 14px -2px var(--accent);
+}
+.lisa__avatar--lg {
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  flex: none;
+}
+.lisa__wave {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  animation: lisa-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes lisa-pulse {
+  from {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.lisa__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  width: min(420px, calc(100vw - 24px));
+  max-height: calc(100dvh - 90px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: var(--bg-1);
+  box-shadow:
+    var(--glass-edge),
+    0 24px 60px -20px rgba(0, 0, 0, 0.9);
+  animation: selectIn 0.16s ease both;
+}
+.lisa__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lisa__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.lisa__intro strong {
+  font-size: 14px;
+}
+.lisa__intro span {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.lisa__iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-quiet);
+  cursor: pointer;
+}
+.lisa__iconBtn.is-on {
+  color: var(--accent-2);
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+}
+.lisa__form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lisa__input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+.lisa__input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+.lisa__form .btn {
+  height: 38px;
+}
+.lisa__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lisa__status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent-2);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.lisa__status b {
+  color: var(--text);
+}
+.lisa__status .chip {
+  margin-left: auto;
+}
+.lisa__status--ok {
+  border-left-color: var(--success);
+}
+.lisa__status--err {
+  border-left-color: var(--danger);
+}
+.lisa__status--wrote {
+  flex-direction: column;
+  align-items: stretch;
+}
+.lisa__statusTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lisa__explain {
+  max-height: min(42vh, 320px);
+  overflow: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.lisa__explain code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  color: var(--text);
+}
+.lisa__foot {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------------------- mic -- */
+
+.mic {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.mic__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.mic__btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.mic__btn.is-listening {
+  color: #fff;
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 30%, transparent);
+  animation: mic-ring 1.2s ease-out infinite;
+}
+.mic__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@keyframes mic-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+.mic__error {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 5;
+  width: max-content;
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-1);
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, var(--border));
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  /* the panel becomes a sheet under the header */
+  .lisa__panel {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+  .lisa__input {
+    font-size: 16px; /* no iOS zoom */
+  }
+}
+/* phones: keep the "Ask Lisa" label — just tighten the pill */
+@media (max-width: 480px) {
+  .lisa__trigger {
+    gap: 6px;
+    padding: 4px 11px 4px 4px;
+    font-size: 12.5px;
+  }
+  .lisa__avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lisa__wave,
+  .mic__btn.is-listening {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------ mute -- */
+
+.muteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.muteBtn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+/* while Lisa talks, the button lights up — that's where you tap to stop her */
+.muteBtn.is-speaking {
+  color: var(--accent-2);
+  border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+}
+.muteBtn.is-muted {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+.lisa__opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.lisa__opt input {
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+.lisa__opt.is-disabled {
+  color: var(--text-quiet);
+  cursor: default;
+}
+
+/* phones: the header mute sits in the second row, before Share */
+@media (max-width: 900px) {
+  .header > .muteBtn {
+    order: 7;
+  }
+}

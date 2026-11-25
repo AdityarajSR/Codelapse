@@ -39,6 +39,7 @@ function useCumulativeStdout(steps: Step[], index: number): string {
 }
 
 interface TraceViewProps {
+  code: string;
   pendingShare: boolean;
   workerError: string | null;
 }
@@ -48,7 +49,7 @@ interface TraceViewProps {
  * line) that subscribes to the playback index — so a 16×-speed run re-renders
  * this column, not the whole tree.
  */
-export function TraceView({ pendingShare, workerError }: TraceViewProps) {
+export function TraceView({ code, pendingShare, workerError }: TraceViewProps) {
   const trace = usePlayback((s) => s.trace);
   const index = usePlayback((s) => s.index);
 
@@ -76,6 +77,14 @@ export function TraceView({ pendingShare, workerError }: TraceViewProps) {
         </div>
       )}
       <StatusBanner trace={trace} workerError={workerError} />
+      {/* Narrow screens only: the editor is in another view, so show the
+          executing line here. Hidden on wide layouts via CSS. */}
+      {current && (
+        <div className="nowline" aria-hidden="true">
+          <span className="nowline__ln">line {current.line}</span>
+          <code className="nowline__code">{code.split('\n')[current.line - 1]?.trim() || '—'}</code>
+        </div>
+      )}
       <Stage frame={frame} />
       <div className="panels">
         <VariablesPanel

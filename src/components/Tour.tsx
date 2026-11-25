@@ -1,15 +1,31 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { randomFact } from '../lib/facts';
+import { sfx } from '../lib/sfx';
 import { CloseIcon } from './Icons';
 
-const KEY = 'codelapse.tour.v1';
+// v2: the tour grew (Lisa, assistant, resizing) — offered once more to
+// people who saw the first version.
+const KEY = 'codelapse.tour.v2';
 
 interface TourStep {
+  /** comma-separated alternatives; the first VISIBLE match is used (phone vs desktop) */
   selector: string;
   title: string;
   body: string;
+  /** clicking the control during the tour would open something the spotlight can't show */
+  noInteract?: boolean;
 }
 
+/** The first matching element that is actually on screen. */
+function visible(selector: string): Element | null {
+  for (const el of document.querySelectorAll(selector)) {
+    if (el.getClientRects().length > 0) return el;
+  }
+  return null;
+}
+
+// Steps whose control isn't visible on this screen (phone vs laptop, no
+// WebGL…) are skipped automatically.
 const ALL_STEPS: TourStep[] = [
   {
     selector: '.langSelect',
@@ -17,19 +33,50 @@ const ALL_STEPS: TourStep[] = [
     body: 'Python and JavaScript run right in your browser. Java, C and C++ are on the way.',
   },
   {
+    selector: '.exampleSelect',
+    title: 'Start from an example',
+    body: 'Sorting, recursion, stacks, dictionaries — pick one, or paste your own code in the editor.',
+  },
+  {
+    selector: '.lisa__trigger',
+    title: 'Meet Lisa',
+    body: 'Type or tap the mic: “write a binary search”, “why is total 6?”, “next step”. Ctrl+K opens her anytime.',
+    noInteract: true,
+  },
+  {
+    selector: '.header > .muteBtn',
+    title: 'Voice on or off',
+    body: 'Lisa can read answers aloud. Tap here to mute her — or press Esc to stop her mid-sentence.',
+  },
+  {
+    selector: '.mnav',
+    title: 'Three views',
+    body: 'Code to edit, Visualize to watch it run, Assistant for explanations and quizzes.',
+  },
+  {
+    selector: '.assistant__tabs',
+    title: 'Your assistant',
+    body: '“This step” explains every line as it runs, “Ask AI” answers questions, “Quiz” tests your predictions.',
+  },
+  {
+    selector: '.splitter--columns',
+    title: 'Make room',
+    body: 'Drag the bars between panels to resize them. Section headers collapse with one click.',
+  },
+  {
     selector: '.stage .toggle',
     title: '3D or 2D',
     body: 'Your lists and dicts appear as 3D objects on the stage — drag to orbit, or flip to flat 2D.',
   },
   {
-    selector: '.speed',
+    selector: '.speed, .speedCycle',
     title: 'Set the pace',
-    body: 'Slow down to follow every step, or crank it to 16× for long loops.',
+    body: 'Slow down to follow every step, or speed up to 16× for long loops.',
   },
   {
     selector: '.playbar .icon-btn--primary',
     title: 'Press play',
-    body: 'Your code becomes a video — play it, pause it, scrub it. Space works too. Go!',
+    body: 'Your code becomes a video — play, pause, step with ← →, scrub the timeline. Go!',
   },
 ];
 
@@ -85,21 +132,34 @@ export function FirstRunTour() {
     if (phase === 'welcome') primaryRef.current?.focus();
   }, [phase]);
 
+  // "Start the tutorial" from Lisa (or anywhere): show the welcome again.
+  useEffect(() => {
+    const open = () => setPhase('welcome');
+    window.addEventListener('codelapse:tour', open);
+    return () => window.removeEventListener('codelapse:tour', open);
+  }, []);
+
   const decline = () => {
     remember('declined');
     setPhase(null);
   };
+  const skip = () => {
+    remember('skipped');
+    setPhase(null);
+  };
   const finish = () => {
     remember('done');
+    sfx('done');
     setPhase(null);
   };
   const startTour = () => {
-    // only tour controls that actually exist (e.g. no 3D toggle without WebGL)
-    const available = ALL_STEPS.filter((s) => document.querySelector(s.selector));
+    // only tour controls that are visible on THIS screen
+    const available = ALL_STEPS.filter((s) => visible(s.selector));
     if (available.length === 0) {
       finish();
       return;
     }
+    sfx('whoosh');
     setSteps(available);
     setPhase(0);
   };
@@ -109,7 +169,7 @@ export function FirstRunTour() {
   // when the menu mounts/unmounts so the spotlight hole can grow to include it.
   useLayoutEffect(() => {
     if (typeof phase !== 'number') return;
-    const el = document.querySelector(steps[phase]?.selector ?? '');
+    const el = visible(steps[phase]?.selector ?? '');
     const update = () => {
       setRect(el ? el.getBoundingClientRect() : null);
       const menu = el?.querySelector('.select__menu');
@@ -128,7 +188,15 @@ export function FirstRunTour() {
   const next = () => {
     if (typeof phase !== 'number') return;
     if (phase >= steps.length - 1) finish();
-    else setPhase(phase + 1);
+    else {
+      sfx('whoosh');
+      setPhase(phase + 1);
+    }
+  };
+  const back = () => {
+    if (typeof phase !== 'number' || phase === 0) return;
+    sfx('tick');
+    setPhase(phase - 1);
   };
 
   useEffect(() => {
@@ -136,14 +204,23 @@ export function FirstRunTour() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (phase === 'welcome') decline();
-        else finish();
+        else skip();
       } else if (e.key === 'Enter' && typeof phase === 'number') {
         e.preventDefault();
         next();
+      } else if (e.key === 'ArrowRight' && typeof phase === 'number') {
+        e.preventDefault();
+        e.stopImmediatePropagation(); // don't also step the playback
+        next();
+      } else if (e.key === 'ArrowLeft' && typeof phase === 'number') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        back();
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // capture phase: runs before the playback shortcuts, so ← → move the tour
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, steps]);
 
@@ -158,8 +235,13 @@ export function FirstRunTour() {
       const target = e.target as Node | null;
       if (!target) return;
       if (document.querySelector('.tourPop')?.contains(target)) return; // popover buttons
-      const el = document.querySelector(steps[phase]?.selector ?? '');
-      if (el && el.contains(target)) {
+      const step = steps[phase];
+      const el = visible(step?.selector ?? '');
+      if (el && el.contains(target) && step?.noInteract) {
+        e.preventDefault();
+        e.stopPropagation();
+        bump();
+      } else if (el && el.contains(target)) {
         // last step's control is Play → clicking it ends the tour and, via its
         // own onClick, starts playback. Other steps: interact freely, no advance.
         if (phase === steps.length - 1) finish();
@@ -195,17 +277,18 @@ export function FirstRunTour() {
             <strong>Did you know?</strong> {fact}
           </p>
           <p className="dialog__mode">
-            Codelapse turns your code into a video — watch every line run, with live variables and a
-            3D stage. Want a quick 20-second tour?
+            Codelapse turns your code into a video — watch every line run, with live variables, a 3D
+            stage, and Lisa to explain it all. Want a 30-second tour?
           </p>
           <div className="tourActions">
             <button ref={primaryRef} className="btn btn--run" onClick={startTour}>
               Show me around
             </button>
             <button className="btn btn--ghost" onClick={decline}>
-              No thanks
+              Skip — I'll explore
             </button>
           </div>
+          <p className="tourHint">You can replay it anytime — ask Lisa to “start the tutorial”.</p>
         </div>
       </div>
     );
@@ -221,10 +304,11 @@ export function FirstRunTour() {
   // to below, or above for controls low on the screen. Everything is clamped
   // so the card can never leave the viewport — with fallbacks so a
   // zero/degenerate viewport still positions sanely.
-  const popWidth = 280;
-  const estHeight = 172; // rough card height, for vertical clamping only
-  const gap = 16;
   const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
+  // must match .tourPop's width in index.css (wider card on narrow screens)
+  const popWidth = vw <= 900 ? Math.min(320, vw - 24) : 280;
+  const estHeight = 190; // rough card height, for vertical clamping only
+  const gap = 16;
   const vh = window.innerHeight || document.documentElement.clientHeight || 800;
   let popStyle: React.CSSProperties = {};
   let clip: string | undefined;
@@ -303,7 +387,7 @@ export function FirstRunTour() {
       >
         <div className="tourPop__head">
           <h3>{step.title}</h3>
-          <button className="icon-btn tourPop__close" onClick={finish} aria-label="Skip tour">
+          <button className="icon-btn tourPop__close" onClick={skip} aria-label="Skip tour">
             <CloseIcon size={12} />
           </button>
         </div>
@@ -314,6 +398,16 @@ export function FirstRunTour() {
               <i key={i} className={i === phase ? 'on' : ''} />
             ))}
           </span>
+          {!last && (
+            <button className="tourPop__skip" onClick={skip}>
+              Skip
+            </button>
+          )}
+          {phase > 0 && (
+            <button className="btn btn--ghost btn--sm tourPop__back" onClick={back}>
+              Back
+            </button>
+          )}
           <button className="btn btn--run tourPop__next" onClick={next}>
             {last ? 'Finish' : 'Next'}
           </button>

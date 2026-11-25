@@ -1,0 +1,646 @@
+/* ------------------------------------------------------------- assistant --
+   Styles for AssistantPanel.tsx. Uses the design tokens from index.css. */
+
+/* Sizes to its content ("This step", "Quiz") up to a cap, so the editor keeps
+   the space; the chat gets a steady height so the log doesn't jump around. */
+.assistant {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 46%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.assistant--ask {
+  flex: 0 0 auto;
+  height: clamp(340px, 56vh, 620px);
+  /* the editor always keeps a usable strip */
+  max-height: calc(100% - 192px); /* editor min 180px + 12px bar */
+}
+.assistant--collapsed {
+  flex: 0 0 auto;
+  height: auto;
+}
+.assistant__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.assistant--collapsed .assistant__head {
+  border-bottom: none;
+}
+.assistant__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+}
+.spark {
+  color: var(--accent);
+  flex: none;
+}
+.assistant__tabs {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.assistant__tab {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.assistant__tab:hover {
+  color: var(--text);
+}
+.assistant__tab.is-active {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.assistant__busyDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  vertical-align: middle;
+  animation: assistant-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes assistant-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.assistant__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* chips + small buttons */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+.chip:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--surface-2);
+}
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.chip--ai {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--text);
+}
+.btn--sm {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* "This step" */
+.stepx {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stepx__headline {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.stepx__count {
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+}
+.stepx__points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stepx__point {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: var(--surface);
+  border-left: 3px solid var(--border-strong);
+}
+.stepx__kind {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+}
+.stepx__point--line {
+  border-left-color: var(--accent);
+}
+.stepx__point--change {
+  border-left-color: var(--warn);
+}
+.stepx__point--flow {
+  border-left-color: var(--accent-2);
+}
+.stepx__point--stack {
+  border-left-color: #b48cff;
+}
+.stepx__point--output,
+.stepx__point--done {
+  border-left-color: var(--success);
+}
+.stepx__point--error {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+  color: var(--text);
+}
+/* pinned to the bottom of the scroll area so the AI button never scrolls away */
+.stepx__actions {
+  position: sticky;
+  bottom: -12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: auto -14px -12px;
+  padding: 8px 14px 12px;
+  background: color-mix(in srgb, var(--bg-1) 94%, transparent);
+  border-top: 1px solid var(--border);
+}
+.stepx__note {
+  font-size: 11px;
+  color: var(--text-quiet);
+}
+.stepx code,
+.quiz code,
+.md code,
+.chat code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* "Ask AI" */
+.chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* quick questions wrap (never a sideways scrollbar) */
+.chat__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.chat__toolbar + .chat__presets {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.chat__clear {
+  margin-left: auto;
+}
+.chat__welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-quiet);
+}
+.chat__log {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 14px;
+}
+.chat__messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.msg {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.msg--user {
+  align-self: flex-end;
+  max-width: 85%;
+}
+.msg__user {
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 12px 12px 3px 12px;
+  background: var(--accent-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg--assistant {
+  padding: 8px 12px;
+  border-radius: 12px 12px 12px 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.msg__thinking {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-quiet);
+}
+.spinner--light {
+  border-color: rgba(255, 255, 255, 0.15);
+  border-top-color: var(--accent-2);
+}
+.msg__error {
+  margin: 0;
+  color: var(--danger);
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md p,
+.md ul,
+.md ol {
+  margin: 0 0 8px;
+}
+.md ul,
+.md ol {
+  padding-left: 20px;
+}
+.md li {
+  margin: 2px 0;
+}
+.md h4 {
+  margin: 10px 0 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+.md strong {
+  color: var(--text);
+}
+.md__code {
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.md__code code {
+  padding: 0;
+  background: none;
+}
+.chat__form {
+  border-top: 1px solid var(--border);
+  padding: 8px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat__inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.chat__inputRow .btn {
+  flex: none;
+  height: 36px;
+}
+.chat__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  max-height: 120px;
+  line-height: 1.4;
+  resize: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.chat__input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+.chat__privacy {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Quiz" */
+.quiz {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.quiz > .chip {
+  align-self: flex-start;
+}
+.quiz__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.quiz__kind {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+.quiz__score {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.quiz__prompt {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.quiz__code {
+  margin: 0;
+  padding: 8px 11px;
+  border-radius: 9px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-x: auto;
+}
+.quiz__ln {
+  display: inline-block;
+  min-width: 24px;
+  margin-right: 10px;
+  color: var(--text-faint);
+}
+.quiz__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+.quiz__opt {
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  padding: 9px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.quiz__opt code {
+  background: none;
+  padding: 0;
+}
+.quiz__opt:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.quiz__opt:disabled {
+  cursor: default;
+}
+.quiz__opt.is-right {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+}
+.quiz__opt.is-wrong {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.quiz__opt.is-dim {
+  opacity: 0.5;
+}
+.quiz__result {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  border-left: 3px solid var(--success);
+  background: var(--surface-2);
+}
+.quiz__result.is-wrong {
+  border-left-color: var(--warn);
+}
+.quiz__result strong {
+  color: var(--text);
+}
+.quiz__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.quiz__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-quiet);
+}
+
+@media (min-width: 901px) {
+  .assistant--collapsed .assistant__body {
+    display: none;
+  }
+}
+
+/* Narrow screens: the assistant is its own view (MobileNav), so it fills the
+   screen between the header and the playback bar and can't be collapsed. */
+@media (max-width: 900px) {
+  .assistant,
+  .assistant--ask,
+  .assistant--collapsed {
+    flex: 1 0 auto;
+    max-height: none;
+    height: auto;
+    min-height: calc(100dvh - var(--mobile-chrome, 230px));
+  }
+  .assistant--collapsed .assistant__head {
+    border-bottom: 1px solid var(--border);
+  }
+  .assistant .collapseBtn {
+    display: none;
+  }
+  /* the chat must fit above the pinned playback bar with the header still
+     visible, so the input box is on screen without scrolling */
+  .assistant--ask {
+    height: calc(100dvh - 300px);
+    min-height: 340px;
+  }
+  .assistant__body {
+    flex: 1;
+  }
+  .assistant__title {
+    display: none;
+  }
+  .assistant__tabs {
+    margin-left: 0;
+    flex: 1;
+  }
+  .assistant__tab {
+    flex: 1;
+  }
+  .stepx__point {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .chat__input {
+    font-size: 16px; /* stops iOS zooming into the field */
+  }
+  .quiz__options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (pointer: coarse) {
+  .chip,
+  .assistant__tab {
+    min-height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant__busyDot {
+    animation: none;
+  }
+  .chip,
+  .quiz__opt {
+    transition: none;
+  }
+}
+
+/* read-aloud speaker buttons */
+.readAloud {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-quiet);
+  cursor: pointer;
+}
+.readAloud:hover {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--surface);
+}
+.readAloud.is-on {
+  color: var(--accent-2);
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--border));
+}
+.msg__tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+.msg__tools .readAloud {
+  margin-left: 0;
+}
+.chat__inputRow .mic__btn {
+  width: 36px;
+  height: 36px;
+}

@@ -171,6 +171,16 @@ export function PlaybackBar() {
         {line != null && <span className="playbar__line">line {line}</span>}
       </div>
 
+      {/* narrow screens: one button that cycles the speed (see index.css) */}
+      <button
+        className="speedCycle"
+        onClick={() => setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length])}
+        disabled={disabled}
+        aria-label={`Playback speed ${speed}×, tap to change`}
+      >
+        {speed}×
+      </button>
+
       <div className="speed" role="group" aria-label="Playback speed">
         {SPEEDS.map((s) => (
           <button

@@ -34,8 +34,9 @@ guessing what your program does, you *watch* it happen:
 - the **control‑flow** lights the active branch
 - a **3D WebGL stage** animates your data structures — an element flies into an array, a key drops into a dict, boxes pulse when a value changes
 
-…and it plays back like a video: step forward/back, scrub the timeline, pick a speed. It runs
-**entirely in your browser** — nothing you type is ever uploaded.
+…and it plays back like a video: step forward/back, scrub the timeline, pick a speed. Your code
+**runs entirely in your browser**. It is only sent to a server when you ask the optional **AI
+assistant** a question.
 
 > 📸 _Drop a screenshot or GIF of the playground here — run `npm run dev`, then use the in‑app **Share → Download GIF**._
 
@@ -48,6 +49,7 @@ guessing what your program does, you *watch* it happen:
 | 🎬 **Video‑style playback** | Play / pause, step, scrub, speed (1×–16×), jump to the next variable change |
 | 🧊 **3D data‑structure stage** | Arrays, dicts, sets and strings as physical objects (Three.js) — with a 2D fallback |
 | 🐍 **Python** + 🟨 **JavaScript** | Both traced **in the browser** (Pyodide / AST‑instrumentation) — Java, C, C++ are on the roadmap |
+| 🧑‍🏫 **AI assistant** | Plain‑language explanation of every step (instant, no AI), AI Q&A (free Gemini by default) — explain the code, line by line, find bugs, time/space complexity, practice questions — and prediction quizzes checked against the real run |
 | 🔗 **Shareable runs** | A link replays the exact run, or opens your code behind a press‑play gate — plus a QR code |
 | 🎞️ **GIF export** | Turn any run into a shareable clip, client‑side |
 | 🎨 **Bold, alive UI** | Dark glass, gradient accents, brand syntax highlighting, a first‑run tour |
@@ -89,6 +91,38 @@ npm run dev          # → http://localhost:5173
 
 The Python engine (Pyodide) streams from a pinned CDN on first run and is cached after.
 
+**AI assistant (optional)**
+
+The assistant panel under the editor has three tabs:
+
+| Tab | What it does | Needs an API key? |
+|---|---|---|
+| **This step** | Explains the current step: the line about to run, which variables changed and why, loop jumps, true/false conditions, the call stack, output, and errors with a suggested fix | No — computed from the trace |
+| **Ask AI** | Chat with an AI (Gemini by default) about your code, plus one‑click *What does this code do?*, *Explain line by line*, *Explain this step*, *Find bugs*, *Time & space complexity*, *Quiz & practice questions* | Yes |
+| **Quiz** | "After line 5 runs, what will `total` be?" / "Which line runs next?" — answers come from the real run, with *Show me* to jump there | No |
+| **Lisa** (top bar, <kbd>Ctrl</kbd>+<kbd>K</kbd>) | Type or speak: "write a binary search" → code in the editor, run, and explained; questions go to the chat; "next step", "play", "run it", "start the tutorial" | Only for writing code / questions |
+
+🎤 Mic buttons (Lisa and the chat) use the browser's speech recognition (Chrome, Edge, Safari).
+🔊 Speaker buttons read answers and step explanations aloud with a female voice, on the device.
+
+To turn on **Ask AI** for free, get a Gemini API key at
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) (no credit card) and put it in
+`.env.local`:
+
+```bash
+cp .env.example .env.local   # then edit: GEMINI_API_KEY=AIza...
+npm run dev                  # restart after changing .env.local
+```
+
+The key stays on the server (`server/assistant.ts`, served at `/api/assistant`) and is never
+sent to the browser. Questions go to `gemini-3.8-flash` by default (`GEMINI_MODEL` to change it).
+Groq (`GROQ_API_KEY`, also free) and Claude (`ANTHROPIC_API_KEY`, paid) are supported too — see
+[`.env.example`](.env.example). Each client is limited to 30 questions per 10 minutes.
+
+> **Free‑tier notes:** Google's free tier has per‑minute and per‑day limits shared by everyone using
+> your deployment, and Google may use free‑tier prompts to improve its products. Check the current
+> terms and limits in AI Studio.
+
 **Scripts**
 
 | Command | What it does |
@@ -116,9 +150,10 @@ The Python engine (Pyodide) streams from a pinned CDN on first run and is cached
 ## 🛠️ Tech stack
 
 **Vite** · **React** · **TypeScript** (strict) · **CodeMirror 6** · **Pyodide** (Python→WASM) ·
-**Three.js / react‑three‑fiber** · **Zustand** · **acorn** (JS tracer) · **lz‑string** · **gifenc**.
+**Three.js / react‑three‑fiber** · **Zustand** · **acorn** (JS tracer) · **lz‑string** · **gifenc** ·
+**Google Gen AI SDK** / Groq / Anthropic SDKs (AI assistant).
 
-Fully static, no backend, no database, no environment variables.
+A static site plus one serverless function (`api/assistant.ts`) for the AI assistant. No database.
 
 ---
 
@@ -130,7 +165,10 @@ The browser tier is a static site — it deploys to Vercel with **zero config**
 1. **Import** this repo at [vercel.com/new](https://vercel.com/new) → Deploy. That's it.
 2. Or via CLI: `npm i -g vercel && vercel --prod`.
 
-Every push to `main` auto‑deploys. No secrets, no serverless functions.
+Every push to `main` auto‑deploys. For the AI assistant, add `GEMINI_API_KEY` under
+**Project → Settings → Environment Variables**; Vercel serves [`api/assistant.ts`](api/assistant.ts)
+as a serverless function. Without the key the rest of the app works normally and **Ask AI** shows a
+setup message.
 
 ---
 
@@ -141,6 +179,7 @@ Every push to `main` auto‑deploys. No secrets, no serverless functions.
 - [x] Shareable runs (replay / press‑play) + GIF export
 - [x] JavaScript tracer (in‑browser)
 - [x] Design system, first‑run tour, custom UI
+- [x] AI assistant — step explanations, AI Q&A, quizzes
 - [ ] TypeScript, more seed examples (placement‑prep set)
 - [ ] Cinema mode · command palette · scrubber tooltips
 - [ ] **Server tier** — Go, Java, C/C++ in a sandbox (demand‑gated)
