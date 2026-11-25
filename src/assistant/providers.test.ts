@@ -31,7 +31,7 @@ describe('selectProvider', () => {
     const p = selectProvider({ GEMINI_API_KEY: 'g', GROQ_API_KEY: 'q', ANTHROPIC_API_KEY: 'a' });
     expect(p?.id).toBe('gemini');
     expect(p?.model).toBe(
-      `gemini/${DEFAULT_MODELS.gemini} → groq/${DEFAULT_MODELS.groq} → anthropic/${DEFAULT_MODELS.anthropic}`,
+      `gemini/${DEFAULT_MODELS.gemini} > groq/${DEFAULT_MODELS.groq} > anthropic/${DEFAULT_MODELS.anthropic}`,
     );
   });
 

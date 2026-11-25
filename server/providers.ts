@@ -103,7 +103,7 @@ export function selectProvider(env: ProviderEnv): Provider | null {
 export function withBackups(providers: Provider[]): Provider {
   return {
     id: providers[0].id,
-    model: providers.map((p) => `${p.id}/${p.model}`).join(' → '),
+    model: providers.map((p) => `${p.id}/${p.model}`).join(' > '),
     async *generate(args) {
       for (let i = 0; i < providers.length; i++) {
         let any = false;

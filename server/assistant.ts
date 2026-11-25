@@ -129,7 +129,8 @@ export async function handleAssistant(
       'content-type': 'text/plain; charset=utf-8',
       'cache-control': 'no-store',
       'x-content-type-options': 'nosniff',
-      'x-ai-provider': `${provider.id}/${provider.model}`,
+      // header values must be plain ASCII
+      'x-ai-provider': `${provider.id}/${provider.model}`.replace(/[^ -~]/g, '?'),
     },
   });
 }
