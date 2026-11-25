@@ -8,6 +8,7 @@ import {
   useState,
   type FormEvent,
 } from 'react';
+import { parseIntent } from '../assistant/intent';
 import { Inline, Markdown } from '../assistant/Markdown';
 import { narrateStep, type PointKind } from '../assistant/narrate';
 import { LIMITS, type AssistantMode } from '../assistant/protocol';
@@ -19,6 +20,7 @@ import { usePlayback } from '../state/playbackStore';
 import type { Language } from '../types/trace';
 import { ChevronIcon, CollapseButton } from './Collapsible';
 import { MicButton, SpeakerIcon } from './MicButton';
+import { Thinking } from './Thinking';
 import './AssistantPanel.css';
 
 interface AssistantPanelProps {
@@ -55,6 +57,12 @@ export function AssistantPanel({ code, language }: AssistantPanelProps) {
       void useAssistant
         .getState()
         .ask(mode, typed, { code: codeRef.current, language: langRef.current, speakAnswer }),
+    [],
+  );
+
+  const write = useCallback(
+    (request: string, lang: Language | null, speakAnswer = false) =>
+      void useAssistant.getState().write(request, lang ?? langRef.current, { speakAnswer }),
     [],
   );
 
@@ -119,7 +127,7 @@ export function AssistantPanel({ code, language }: AssistantPanelProps) {
         aria-labelledby={`assistant-tab-${tab}`}
       >
         {tab === 'step' && <StepTab code={code} onAsk={askFromStep} />}
-        {tab === 'ask' && <ChatTab onAsk={ask} />}
+        {tab === 'ask' && <ChatTab onAsk={ask} onWrite={write} />}
         {tab === 'quiz' && <QuizTab code={code} />}
       </div>
     </section>
@@ -230,8 +238,10 @@ const PRESETS: { mode: AssistantMode; label: string }[] = [
 
 function ChatTab({
   onAsk,
+  onWrite,
 }: {
   onAsk: (mode: AssistantMode, typed?: string, speakAnswer?: boolean) => void;
+  onWrite: (request: string, language: Language | null, speakAnswer?: boolean) => void;
 }) {
   const messages = useAssistant((s) => s.messages);
   const busy = useAssistant((s) => s.busy);
@@ -260,7 +270,11 @@ function ChatTab({
     const q = text.trim();
     if (!q || busy) return;
     setInput('');
-    onAsk('ask', q, spoken);
+    // "write a binary search" / "binary search code" → write it into the
+    // editor; other messages are questions (routed to the matching mode).
+    const intent = parseIntent(q);
+    if (intent.kind === 'generate') onWrite(intent.request, intent.language, spoken);
+    else onAsk(intent.kind === 'ask' ? intent.mode : 'ask', q, spoken);
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -368,7 +382,7 @@ const MessageList = memo(function MessageList({ messages }: { messages: ChatMess
               {m.content && <Markdown text={m.content} />}
               {m.pending && !m.content && (
                 <p className="msg__thinking">
-                  <span className="spinner spinner--light" aria-hidden="true" /> Thinking…
+                  <Thinking kind={m.kind === 'write' ? 'write' : 'ask'} />
                 </p>
               )}
               {m.error && (

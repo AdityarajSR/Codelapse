@@ -8,6 +8,7 @@ import { usePlayback } from '../state/playbackStore';
 import type { Language } from '../types/trace';
 import { AssistantError, streamAssistant } from './client';
 import { buildAssistantContext } from './context';
+import { extractCode, extractExplanation } from './intent';
 import { LIMITS, type AssistantMode, type ChatTurn } from './protocol';
 import { presetQuestion } from './prompt';
 import { speak } from './speech';
@@ -19,8 +20,15 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   pending?: boolean;
+  /** 'write' = Lisa / the chat is writing a program (different loading words) */
+  kind?: 'write';
   error?: string;
 }
+
+export type CodeSink = (code: string, language: Language) => void;
+
+export type WriteResult =
+  { ok: true; explanation: string } | { ok: false; error: string; aborted?: boolean };
 
 export interface AskOptions {
   code: string;
@@ -42,6 +50,18 @@ interface AssistantState {
   setSpeakAnswers: (on: boolean) => void;
   reveal: (tab?: AssistantTab) => void;
   ask: (mode: AssistantMode, typed: string, opts: AskOptions) => Promise<void>;
+  /**
+   * Write a program for `request`, put it in the editor (via the registered
+   * code sink, which also runs it) and explain it in the chat. Used by both
+   * Lisa and the chat box, so "write a binary search" works from either.
+   */
+  write: (
+    request: string,
+    language: Language,
+    opts?: { speakAnswer?: boolean },
+  ) => Promise<WriteResult>;
+  /** App registers how to put code in the editor and run it */
+  setCodeSink: (sink: CodeSink | null) => void;
   /** record a finished exchange (e.g. Lisa wrote code) so follow-ups have context */
   addExchange: (question: string, answer: string) => void;
   stop: () => void;
@@ -77,6 +97,7 @@ function store(key: string, value: string) {
 
 let controller: AbortController | null = null;
 let nextId = 0;
+let codeSink: CodeSink | null = null;
 
 export const useAssistant = create<AssistantState>((set, get) => ({
   tab: readTab(),
@@ -153,6 +174,73 @@ export const useAssistant = create<AssistantState>((set, get) => ({
           error: err instanceof AssistantError ? err.message : 'Something went wrong.',
         });
       }
+    } finally {
+      if (controller === own) controller = null;
+      set({ busy: false });
+    }
+  },
+
+  setCodeSink: (sink) => {
+    codeSink = sink;
+  },
+
+  write: async (request, language, opts = {}) => {
+    if (controller)
+      return { ok: false, error: 'Busy with another answer — try again in a moment.' };
+    const userId = ++nextId;
+    const botId = ++nextId;
+    set((s) => ({
+      busy: true,
+      messages: [
+        ...s.messages,
+        { id: userId, role: 'user', content: `Write ${request}` },
+        { id: botId, role: 'assistant', content: '', pending: true, kind: 'write' },
+      ],
+    }));
+    const patch = (p: Partial<ChatMessage>) =>
+      set((s) => ({ messages: s.messages.map((m) => (m.id === botId ? { ...m, ...p } : m)) }));
+
+    const own = new AbortController();
+    controller = own;
+    try {
+      const reply = await streamAssistant(
+        {
+          mode: 'generate',
+          question: request,
+          history: [],
+          context: buildAssistantContext('', language, null, 0),
+        },
+        () => {},
+        own.signal,
+      );
+      const program = extractCode(reply);
+      if (!program || program.length > LIMITS.code) {
+        throw new AssistantError("I couldn't write that one. Try describing it differently.");
+      }
+      const explanation = extractExplanation(reply);
+      codeSink?.(program, language);
+      patch({
+        pending: false,
+        content: `Here's **${request}** — it's in the editor and running. Press ▶ to watch it.\n\n${explanation}`,
+      });
+      if (opts.speakAnswer || get().speakAnswers) {
+        speak(`Here's ${request}. ${explanation} Press play to watch it run.`);
+      }
+      return { ok: true, explanation };
+    } catch (err) {
+      const aborted = own.signal.aborted;
+      const error = aborted
+        ? 'Stopped.'
+        : err instanceof AssistantError
+          ? err.message
+          : 'Something went wrong.';
+      patch({
+        pending: false,
+        error: aborted ? undefined : error,
+        content: aborted ? '_(stopped)_' : '',
+      });
+      if (!aborted && opts.speakAnswer) speak(error);
+      return { ok: false, error, aborted };
     } finally {
       if (controller === own) controller = null;
       set({ busy: false });

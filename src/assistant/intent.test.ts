@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { extractCode, extractExplanation, parseIntent } from './intent';
-import { buildPrompt, GENERATE_SYSTEM_PROMPT } from './prompt';
+import { buildPrompt, GENERATE_SYSTEM_PROMPT, SYSTEM_PROMPT } from './prompt';
 import { parseAssistantRequest } from './protocol';
 import { isMuted, lisaVoice, setMuted, speak, speechChunks, toSpeakable } from './speech';
 
@@ -199,5 +199,29 @@ describe('mute', () => {
 
     setMuted(false);
     delete (window as unknown as { speechSynthesis?: unknown }).speechSynthesis;
+  });
+});
+
+describe('shorter code requests', () => {
+  it.each([
+    ['binary search code', 'binary search', null],
+    ['bubble sort program in javascript', 'bubble sort', 'javascript'],
+    ['program for fibonacci', 'fibonacci', null],
+    ['code of linear search', 'linear search', null],
+  ])('"%s" → write code', (text, request, language) => {
+    expect(parseIntent(text)).toEqual({ kind: 'generate', request, language });
+  });
+  it.each(['explain this code', 'fix my code', 'what does my program do'])(
+    '"%s" stays a question',
+    (text) => {
+      expect(parseIntent(text).kind).toBe('ask');
+    },
+  );
+});
+
+describe('English only', () => {
+  it('tells the model to always answer in English', () => {
+    expect(SYSTEM_PROMPT).toMatch(/Always reply in clear, simple English/);
+    expect(SYSTEM_PROMPT).not.toMatch(/Hinglish\)\. Preset/);
   });
 });

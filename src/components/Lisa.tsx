@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { AssistantError, streamAssistant } from '../assistant/client';
-import { buildAssistantContext } from '../assistant/context';
-import {
-  extractCode,
-  extractExplanation,
-  parseIntent,
-  type PlaybackAction,
-} from '../assistant/intent';
+import { parseIntent, type PlaybackAction } from '../assistant/intent';
 import { Markdown } from '../assistant/Markdown';
 import { LIMITS } from '../assistant/protocol';
 import { speak, useMuted, useSpeaking } from '../assistant/speech';
@@ -15,6 +8,7 @@ import { usePlayback } from '../state/playbackStore';
 import type { Language } from '../types/trace';
 import { MicButton } from './MicButton';
 import { MuteButton } from './MuteButton';
+import { Thinking } from './Thinking';
 import './Lisa.css';
 
 interface LisaProps {
@@ -72,7 +66,6 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
   const muted = useMuted();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
 
   // close on outside click / Escape
   useEffect(() => {
@@ -107,8 +100,6 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
-
   const say = useCallback(
     (text: string, voice: boolean) => {
       if (voice || speakAnswers) speak(text);
@@ -127,51 +118,15 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
     else if (action === 'end') p.seek(Number.MAX_SAFE_INTEGER);
   };
 
+  // Shared with the chat box (assistant store): writes, fills the editor,
+  // runs it, explains it in the chat, and speaks if asked by voice.
   const write = async (request: string, target: Language, voice: boolean) => {
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const undo = { code, language };
     setStatus({ kind: 'writing', request });
-    try {
-      const reply = await streamAssistant(
-        {
-          mode: 'generate',
-          question: request,
-          history: [],
-          context: buildAssistantContext('', target, null, 0),
-        },
-        () => {},
-        controller.signal,
-      );
-      const program = extractCode(reply);
-      if (!program || program.length > LIMITS.code) {
-        throw new AssistantError("I couldn't write that one. Try describing it differently.");
-      }
-      const undo = { code, language };
-      const explanation = extractExplanation(reply);
-      onUseCode(program, target);
-      setStatus({ kind: 'wrote', request, explanation, undo });
-      // Keep it in the chat too, so "why does the loop stop?" has context.
-      useAssistant
-        .getState()
-        .addExchange(
-          `Write ${request}`,
-          `Here's **${request}** — it's in the editor now.\n\n${explanation}`,
-        );
-      say(
-        `Here's ${request}. ${explanation || 'I put it in the editor and ran it.'} Press play to watch it run.`,
-        voice,
-      );
-    } catch (err) {
-      if (controller.signal.aborted) {
-        setStatus({ kind: 'idle' });
-        return;
-      }
-      const text = err instanceof AssistantError ? err.message : 'Something went wrong.';
-      setStatus({ kind: 'error', text });
-      say(text, voice);
-    } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-    }
+    const result = await useAssistant.getState().write(request, target, { speakAnswer: voice });
+    if (result.ok) setStatus({ kind: 'wrote', request, explanation: result.explanation, undo });
+    else if (result.aborted) setStatus({ kind: 'idle' });
+    else setStatus({ kind: 'error', text: result.error });
   };
 
   const handle = (raw: string, voice = false) => {
@@ -277,9 +232,8 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
 
           {status.kind === 'writing' && (
             <div className="lisa__status" role="status">
-              <span className="spinner spinner--light" aria-hidden="true" />
-              Writing <b>{status.request}</b>…
-              <button type="button" className="chip" onClick={() => abortRef.current?.abort()}>
+              <Thinking kind="write" />
+              <button type="button" className="chip" onClick={() => useAssistant.getState().stop()}>
                 Cancel
               </button>
             </div>

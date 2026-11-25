@@ -33,3 +33,6 @@ Thumbs.db
 
 # vite
 .vite/
+
+.vercel
+.env*

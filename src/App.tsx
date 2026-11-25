@@ -1,4 +1,5 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { useAssistant } from './assistant/store';
 import { AssistantPanel } from './components/AssistantPanel';
 import { EditorCard } from './components/EditorCard';
 import { Header } from './components/Header';
@@ -108,6 +109,15 @@ export default function App() {
     run(next, lang);
     if (window.matchMedia(MOBILE_QUERY).matches) setMobileView('code');
   };
+
+  // Let the assistant (chat box or Lisa) put written code in the editor.
+  const useCodeRef = useRef(onUseCode);
+  useCodeRef.current = onUseCode;
+  useEffect(() => {
+    const { setCodeSink } = useAssistant.getState();
+    setCodeSink((c, l) => useCodeRef.current(c, l));
+    return () => setCodeSink(null);
+  }, []);
 
   const onShowAssistant = () => {
     if (window.matchMedia(MOBILE_QUERY).matches) setMobileView('assistant');

@@ -644,3 +644,134 @@
   width: 36px;
   height: 36px;
 }
+
+/* ------------------------------------------------- thinking indicator -- */
+
+.thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.thinking__orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #0a0a12;
+  background: var(--grad);
+  box-shadow: 0 0 16px -2px var(--accent);
+  animation:
+    think-spin 2.4s linear infinite,
+    think-glow 1.6s ease-in-out infinite alternate;
+}
+.thinking__orb::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent-2);
+  border-right-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: think-spin 0.9s linear infinite reverse;
+}
+.thinking__orb svg {
+  animation: think-spin 2.4s linear infinite reverse; /* keep the spark upright-ish */
+}
+.thinking__text {
+  font-weight: 500;
+  background: linear-gradient(
+    90deg,
+    var(--text-quiet) 0%,
+    var(--text) 40%,
+    var(--accent-2) 50%,
+    var(--text) 60%,
+    var(--text-quiet) 100%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation:
+    think-shimmer 2s linear infinite,
+    think-in 0.35s ease both;
+}
+.thinking__dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.thinking__dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  animation: think-bounce 1s ease-in-out infinite;
+}
+.thinking__dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.thinking__dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.thinking__time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+@keyframes think-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes think-glow {
+  from {
+    box-shadow: 0 0 10px -4px var(--accent);
+  }
+  to {
+    box-shadow: 0 0 22px 0 var(--accent-2);
+  }
+}
+@keyframes think-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+@keyframes think-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+@keyframes think-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking__orb,
+  .thinking__orb::after,
+  .thinking__orb svg,
+  .thinking__text,
+  .thinking__dots i {
+    animation: none;
+  }
+  .thinking__text {
+    color: var(--text-muted);
+    background: none;
+  }
+}
