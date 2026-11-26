@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { RunPhase } from '../runtime/useRunner';
 import type { Example } from '../examples';
 import type { Language } from '../types/trace';
-import { BrandMark, PlayIcon, ShareIcon } from './Icons';
+import { BrandMark, PlayIcon } from './Icons';
 import { MuteButton } from './MuteButton';
 import { NavFact } from './NavFact';
 import { Select, type SelectOption } from './Select';
@@ -12,7 +12,6 @@ interface HeaderProps {
   language: Language;
   onPickLanguage: (lang: Language) => void;
   onRun: () => void;
-  onShare: () => void;
   examples: Example[];
   currentExampleId: string;
   onPickExample: (id: string) => void;
@@ -41,7 +40,6 @@ export function Header({
   language,
   onPickLanguage,
   onRun,
-  onShare,
   examples,
   currentExampleId,
   onPickExample,
@@ -93,30 +91,8 @@ export function Header({
         runs in your browser
       </span>
 
-      <a className="header__legal" href="/legal.html" target="_blank" rel="noopener noreferrer">
-        Legal
-      </a>
-
-      <button
-        type="button"
-        className="btn btn--ghost btn--tour"
-        onClick={() => window.dispatchEvent(new Event('codelapse:tour'))}
-        title="Show the tutorial"
-        aria-label="Tutorial"
-      >
-        <span className="btn--tour__q" aria-hidden="true">
-          ?
-        </span>
-        <span className="btn__label">Tutorial</span>
-      </button>
-
       {lisa}
       <MuteButton />
-
-      <button className="btn btn--ghost btn--share" onClick={onShare} aria-label="Share">
-        <ShareIcon />
-        <span className="btn__label">Share</span>
-      </button>
 
       <button className="btn btn--run" onClick={onRun} disabled={busy} aria-busy={busy}>
         {busy ? <span className="spinner" aria-hidden="true" /> : <PlayIcon size={14} />}

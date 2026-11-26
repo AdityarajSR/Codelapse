@@ -38,7 +38,7 @@ guessing what your program does, you *watch* it happen:
 **runs entirely in your browser**. It is only sent to a server when you ask the optional **AI
 assistant** a question.
 
-> 📸 _Drop a screenshot or GIF of the playground here — run `npm run dev`, then use the in‑app **Share → Download GIF**._
+> 📸 _Drop a screenshot of the playground here — run `npm run dev` and capture it._
 
 ---
 
@@ -50,11 +50,9 @@ assistant** a question.
 | 🧊 **3D data‑structure stage** | Arrays, dicts, sets and strings as physical objects (Three.js) — with a 2D fallback |
 | 🐍 **Python** + 🟨 **JavaScript** | Both traced **in the browser** (Pyodide / AST‑instrumentation) — Java, C, C++ are on the roadmap |
 | 🧑‍🏫 **AI assistant** | Plain‑language explanation of every step (instant, no AI), AI Q&A (free Gemini by default) — explain the code, line by line, find bugs, time/space complexity, practice questions — and prediction quizzes checked against the real run |
-| 🔗 **Shareable runs** | A link replays the exact run, or opens your code behind a press‑play gate — plus a QR code |
-| 🎞️ **GIF export** | Turn any run into a shareable clip, client‑side |
-| 🎨 **Bold, alive UI** | Dark glass, gradient accents, brand syntax highlighting, a first‑run tour |
+| 🎨 **Bold, alive UI** | Dark glass, gradient accents, brand syntax highlighting |
 | ♿ **Accessible** | Keyboard‑driven, focus rings, reduced‑motion aware, screen‑reader output |
-| 🔒 **Safe by design** | User code runs in a **network‑stripped Web Worker** — no `fetch`, even from a shared link |
+| 🔒 **Safe by design** | User code runs in a **network‑stripped Web Worker** — no `fetch` |
 
 ---
 
@@ -100,7 +98,7 @@ The assistant panel under the editor has three tabs:
 | **This step** | Explains the current step: the line about to run, which variables changed and why, loop jumps, true/false conditions, the call stack, output, and errors with a suggested fix | No — computed from the trace |
 | **Ask AI** | Chat with an AI (Gemini by default) about your code, plus one‑click *What does this code do?*, *Explain line by line*, *Explain this step*, *Find bugs*, *Time & space complexity*, *Quiz & practice questions* | Yes |
 | **Quiz** | "After line 5 runs, what will `total` be?" / "Which line runs next?" — answers come from the real run, with *Show me* to jump there | No |
-| **Lisa** (top bar, <kbd>Ctrl</kbd>+<kbd>K</kbd>) | Type or speak: "write a binary search" → code in the editor, run, and explained; questions go to the chat; "next step", "play", "run it", "start the tutorial" | Only for writing code / questions |
+| **Lisa** (top bar, <kbd>Ctrl</kbd>+<kbd>K</kbd>) | Type or speak: "write a binary search" → code in the editor, run, and explained; questions go to the chat; "next step", "play", "run it", "go back" | Only for writing code / questions |
 
 🎤 Mic buttons (Lisa and the chat) use the browser's speech recognition (Chrome, Edge, Safari).
 🔊 Speaker buttons read answers and step explanations aloud with a female voice, on the device.
@@ -150,7 +148,7 @@ Groq (`GROQ_API_KEY`, also free) and Claude (`ANTHROPIC_API_KEY`, paid) are supp
 ## 🛠️ Tech stack
 
 **Vite** · **React** · **TypeScript** (strict) · **CodeMirror 6** · **Pyodide** (Python→WASM) ·
-**Three.js / react‑three‑fiber** · **Zustand** · **acorn** (JS tracer) · **lz‑string** · **gifenc** ·
+**Three.js / react‑three‑fiber** · **Zustand** · **acorn** (JS tracer) · **lz‑string** ·
 **Google Gen AI SDK** / Groq / Anthropic SDKs (AI assistant).
 
 A static site plus one serverless function (`api/assistant.ts`) for the AI assistant. No database.
@@ -176,9 +174,8 @@ setup message.
 
 - [x] Python tracer + full playback UI
 - [x] 3D WebGL data‑structure stage
-- [x] Shareable runs (replay / press‑play) + GIF export
 - [x] JavaScript tracer (in‑browser)
-- [x] Design system, first‑run tour, custom UI
+- [x] Design system, custom UI
 - [x] AI assistant — step explanations, AI Q&A, quizzes
 - [ ] TypeScript, more seed examples (placement‑prep set)
 - [ ] Cinema mode · command palette · scrubber tooltips

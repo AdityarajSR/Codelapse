@@ -1,7 +1,7 @@
 /**
  * Understands what the student asked Lisa (typed or spoken) — locally, with
- * no AI call — and routes it: write code, ask the tutor, start the tutorial,
- * or a playback command ("next step", "play").
+ * no AI call — and routes it: write code, ask the tutor, or a playback
+ * command ("next step", "play").
  */
 import type { Language } from '../types/trace';
 import type { AssistantMode } from './protocol';
@@ -11,7 +11,6 @@ export type PlaybackAction = 'run' | 'play' | 'pause' | 'next' | 'back' | 'start
 export type Intent =
   | { kind: 'generate'; request: string; language: Language | null }
   | { kind: 'ask'; mode: AssistantMode; text: string }
-  | { kind: 'tutorial' }
   | { kind: 'control'; action: PlaybackAction }
   | { kind: 'empty' };
 
@@ -59,14 +58,6 @@ export function parseIntent(raw: string): Intent {
   if (!text) return { kind: 'empty' };
 
   for (const [re, action] of CONTROLS) if (re.test(text)) return { kind: 'control', action };
-
-  if (
-    /\b(tutorial|tour|show me around|how (do i|to) use (this|codelapse|the app)|guide me)\b/.test(
-      text,
-    )
-  ) {
-    return { kind: 'tutorial' };
-  }
 
   // Strong "write code" verbs win; then learning keywords (bug, quiz, …) about
   // the CURRENT code; only then the weaker verbs ("give me", "show me", "make").

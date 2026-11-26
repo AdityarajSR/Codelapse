@@ -30,11 +30,6 @@ describe('parseIntent', () => {
     expect(parseIntent(text)).toEqual({ kind: 'control', action });
   });
 
-  it('recognises the tutorial', () => {
-    expect(parseIntent('Start the tutorial').kind).toBe('tutorial');
-    expect(parseIntent('how do I use this?').kind).toBe('tutorial');
-  });
-
   it.each([
     ['Explain this code', 'ask'],
     ['What does this code do?', 'ask'],

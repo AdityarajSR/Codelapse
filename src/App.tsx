@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAssistant } from './assistant/store';
 import { AssistantPanel } from './components/AssistantPanel';
 import { EditorCard } from './components/EditorCard';
@@ -6,7 +6,6 @@ import { Header } from './components/Header';
 import { Lisa } from './components/Lisa';
 import { MobileNav, type MobileView } from './components/MobileNav';
 import { PlaybackBar } from './components/PlaybackBar';
-import { FirstRunTour } from './components/Tour';
 import { TraceView } from './components/TraceView';
 import { Workspace } from './components/Workspace';
 import { defaultExampleFor, examplesFor } from './examples';
@@ -15,12 +14,6 @@ import { decodeShare } from './lib/share';
 import { useRunner } from './runtime/useRunner';
 import { usePlayback } from './state/playbackStore';
 import type { Language } from './types/trace';
-
-// Loaded on demand — keeps qrcode/gifenc out of the entry chunk, and the
-// dialog stops existing (and re-rendering) entirely while closed.
-const ShareDialog = lazy(() =>
-  import('./components/ShareDialog').then((m) => ({ default: m.ShareDialog })),
-);
 
 /** Keep in sync with the narrow-screen breakpoint in index.css. */
 const MOBILE_QUERY = '(max-width: 900px)';
@@ -39,7 +32,6 @@ export default function App() {
   const [exampleId, setExampleId] = useState(defaultExampleFor('python').id);
   // Shared *source* opens behind a press-play gate — never auto-run (§9.1).
   const [pendingShare, setPendingShare] = useState(initial?.kind === 'source');
-  const [shareOpen, setShareOpen] = useState(false);
 
   const { phase, trace, error, run } = useRunner();
 
@@ -68,7 +60,7 @@ export default function App() {
   }, [initial, run, setTrace, seek]);
 
   // Note: nothing auto-plays. The default example's trace loads so every panel
-  // has content, but playback waits for the user (see FirstRunTour).
+  // has content, but playback waits for the user to press play.
 
   const [mobileView, setMobileView] = useState<MobileView>('code');
 
@@ -140,7 +132,6 @@ export default function App() {
         language={language}
         onPickLanguage={onPickLanguage}
         onRun={onRun}
-        onShare={() => setShareOpen(true)}
         examples={examplesFor(language)}
         currentExampleId={exampleId}
         onPickExample={onPickExample}
@@ -165,14 +156,6 @@ export default function App() {
       />
 
       <PlaybackBar />
-
-      {shareOpen && (
-        <Suspense fallback={null}>
-          <ShareDialog onClose={() => setShareOpen(false)} source={code} language={language} />
-        </Suspense>
-      )}
-
-      <FirstRunTour />
     </div>
   );
 }

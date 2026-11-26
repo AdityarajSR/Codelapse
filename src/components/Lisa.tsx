@@ -38,7 +38,7 @@ const SUGGESTIONS = [
   'Explain this code',
   'Write bubble sort in JavaScript',
   'Find bugs in my code',
-  'Start the tutorial',
+  'What is the time complexity?',
 ];
 
 const CONTROL_LABEL: Record<PlaybackAction, string> = {
@@ -54,7 +54,7 @@ const CONTROL_LABEL: Record<PlaybackAction, string> = {
 /**
  * Lisa — the assistant in the top bar. Type or speak: she writes programs into
  * the editor and runs them, answers questions about the code (in the
- * assistant panel), starts the tutorial, and steps the playback by voice.
+ * assistant panel), and steps the playback by voice.
  */
 export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: LisaProps) {
   const [open, setOpen] = useState(false);
@@ -141,11 +141,6 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
         control(intent.action);
         setStatus({ kind: 'done', text: CONTROL_LABEL[intent.action] });
         say(CONTROL_LABEL[intent.action], voice);
-        return;
-      case 'tutorial':
-        setOpen(false);
-        setStatus({ kind: 'idle' });
-        window.dispatchEvent(new Event('codelapse:tour'));
         return;
       case 'generate':
         void write(intent.request, intent.language ?? language, voice);
@@ -303,8 +298,8 @@ export function Lisa({ code, language, onUseCode, onRun, onShowAssistant }: Lisa
           </label>
 
           <p className="lisa__foot">
-            Voice: “next step”, “play”, “run it”, “start the tutorial”. Ctrl+K opens Lisa · Esc
-            stops speaking ·{' '}
+            Voice: “next step”, “play”, “run it”, “go back”. Ctrl+K opens Lisa · Esc stops speaking
+            ·{' '}
             <a href="/legal.html" target="_blank" rel="noopener noreferrer">
               Terms &amp; privacy
             </a>

@@ -197,7 +197,7 @@ body {
 .header {
   position: relative;
   /* above the mobile nav (4) and pinned playbar (5), so Lisa's panel and the
-     dropdown menus open over them; below dialogs and the tour (50+) */
+     dropdown menus open over them; below dialogs (50+) */
   z-index: 6;
   display: flex;
   align-items: center;
@@ -270,16 +270,6 @@ body {
   background: var(--success);
   box-shadow: 0 0 8px var(--success);
 }
-.header__legal {
-  font-size: 12px;
-  color: var(--text-quiet);
-  text-decoration: none;
-  padding: 6px 4px;
-}
-.header__legal:hover {
-  color: var(--text-muted);
-}
-
 /* rotating "did you know?" chip next to the language picker */
 .navFact {
   display: inline-flex;
@@ -1517,162 +1507,7 @@ body {
   color: var(--text-quiet);
 }
 
-/* ------------------------------------------------------------------ tour -- */
-
-.tourFact {
-  margin: 0 0 14px;
-  padding: 11px 14px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-  border-left: 3px solid var(--accent);
-  border-radius: 12px;
-  background: var(--accent-soft);
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text);
-}
-.tourFact strong {
-  color: var(--accent-2);
-}
-.tourActions {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-}
-/* blur + dim everything; the clip-path hole keeps the highlighted control sharp */
-.tourScrim {
-  position: fixed;
-  inset: 0;
-  z-index: 55;
-  background: rgba(7, 7, 12, 0.5);
-  backdrop-filter: blur(3px);
-  pointer-events: none;
-  animation: scrimIn 0.25s ease both;
-}
-@keyframes scrimIn {
-  from {
-    opacity: 0;
-  }
-}
-/* transparent layer above the scrim: blocks the app and shakes on click */
-.tourCatcher {
-  position: fixed;
-  inset: 0;
-  z-index: 56;
-  cursor: default;
-}
-@keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  15% {
-    transform: translateX(-9px);
-  }
-  30% {
-    transform: translateX(8px);
-  }
-  45% {
-    transform: translateX(-6px);
-  }
-  60% {
-    transform: translateX(5px);
-  }
-  75% {
-    transform: translateX(-3px);
-  }
-}
-/* compound selectors so shake wins over the cards' own entrance animation */
-.tourPop.is-shaking,
-.dialog.is-shaking {
-  animation: shake 0.4s ease;
-}
-.tourRing {
-  position: fixed;
-  z-index: 60;
-  border: 2px solid var(--accent-2);
-  border-radius: 12px;
-  box-shadow:
-    0 0 0 4px rgba(51, 214, 245, 0.15),
-    0 0 26px -4px var(--accent-2);
-  pointer-events: none;
-  transition:
-    top 0.28s ease,
-    left 0.28s ease,
-    width 0.28s ease,
-    height 0.28s ease;
-}
-.tourPop {
-  position: fixed;
-  z-index: 61;
-  width: 280px;
-  background: var(--bg-1);
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: var(--glass-edge), var(--shadow);
-  animation: dialogIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-.tourPop__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.tourPop h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 14.5px;
-  font-weight: 600;
-}
-.tourPop__close {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-}
-.tourPop p {
-  margin: 0 0 12px;
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--text-muted);
-}
-/* dots on their own line, then [Skip ……… Back Next] */
-.tourPop__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-.tourPop__row > * {
-  flex: none;
-}
-.tourPop__dots {
-  flex-basis: 100%;
-}
-.tourPop__skip {
-  margin-right: auto;
-}
-.tourPop__skip {
-  border: none;
-  background: none;
-  padding: 6px 4px;
-  color: var(--text-quiet);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.tourPop__skip:hover {
-  color: var(--text);
-  text-decoration: underline;
-}
-.tourPop__back {
-  padding: 6px 11px;
-}
-.tourHint {
-  margin: 12px 0 0;
-  font-size: 12px;
-  color: var(--text-quiet);
-}
+/* --------------------------------------------------------------- a11y -- */
 
 /* "Skip to main content": off-screen until a keyboard user tabs to it */
 .skipLink {
@@ -1697,23 +1532,6 @@ body {
 }
 #main:focus {
   outline: none;
-}
-.tourPop__dots {
-  display: inline-flex;
-  gap: 5px;
-}
-.tourPop__dots i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--surface-3);
-}
-.tourPop__dots i.on {
-  background: var(--accent-2);
-}
-.tourPop__next {
-  padding: 7px 14px;
-  font-size: 12px;
 }
 
 .fatal {
@@ -1932,7 +1750,7 @@ body.is-resizing-y {
     overflow-x: clip;
   }
 
-  /* header: [brand ……… Run] / [language] [example ……] [share] [legal] */
+  /* header: [brand … Ask Lisa · Run] / [language] [example ……] [mute] [share] */
   .header {
     flex-wrap: wrap;
     gap: 8px;
@@ -1971,13 +1789,6 @@ body.is-resizing-y {
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .btn--share {
-    order: 7;
-  }
-  .header__legal {
-    order: 8;
-  }
-
   .mnav {
     display: flex;
   }
@@ -2074,17 +1885,9 @@ body.is-resizing-y {
   .app:has(.chat__input:focus) .playbar {
     display: none;
   }
-
-  .tourPop {
-    width: calc(100vw - 24px);
-    max-width: 320px;
-  }
 }
 
 @media (max-width: 480px) {
-  .btn--share .btn__label {
-    display: none;
-  }
   /* top row is [logo] [Ask Lisa] [Run]: keep it one line on small phones */
   .btn--run[aria-busy='true'] .btn__label {
     display: none;
@@ -2106,13 +1909,6 @@ body.is-resizing-y {
   }
 }
 @media (max-width: 480px) {
-  .btn--share {
-    padding: 9px 11px;
-  }
-  /* no room on small phones — the Legal link lives in Lisa's panel instead */
-  .header__legal {
-    display: none;
-  }
   .langSelect .select__trigger {
     padding: 6px 10px;
   }
@@ -2164,13 +1960,9 @@ body.is-resizing-y {
   .brand__mark,
   .stage__cube,
   .tile,
-  .tourPop,
   .dialog,
   .icon-btn--primary.is-playing {
     animation: none !important;
-  }
-  .tourRing {
-    transition: none;
   }
   .btn--run::after {
     display: none;
